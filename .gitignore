@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.wrangler/
+data/d1_database.json
+data/private_reports/
+server.js

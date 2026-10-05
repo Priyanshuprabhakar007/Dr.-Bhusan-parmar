@@ -15,8 +15,10 @@ rl.question('Enter admin email: ', (email) => {
         process.exit(1);
       }
 
+const PASSWORD_PBKDF2_ITERATIONS = 100000;
+
       const salt = crypto.randomBytes(16).toString('hex');
-      crypto.pbkdf2(password, salt, 210000, 32, 'sha256', (err, derivedKey) => {
+      crypto.pbkdf2(password, salt, PASSWORD_PBKDF2_ITERATIONS, 32, 'sha256', (err, derivedKey) => {
         if (err) {
           console.error('Error generating hash:', err);
           rl.close();

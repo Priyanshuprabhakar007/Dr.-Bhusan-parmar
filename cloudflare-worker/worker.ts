@@ -45,7 +45,9 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
 }
 
-async function hashPasswordPBKDF2(password: string, salt: string, iterations = 210000): Promise<string> {
+const PASSWORD_PBKDF2_ITERATIONS = 100000;
+
+async function hashPasswordPBKDF2(password: string, salt: string, iterations = PASSWORD_PBKDF2_ITERATIONS): Promise<string> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -302,7 +304,7 @@ export default {
         await env.DB.prepare('UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').bind(user.id).run();
 
         const isSecure = url.protocol === 'https:' || env.ENVIRONMENT === 'production';
-        const cookieVal = `${COOKIE_NAME}=${rawToken}; HttpOnly; ${isSecure ? 'Secure; ' : ''}SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
+        const cookieVal = `${COOKIE_NAME}=${rawToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSeconds}`;
 
         return json({
           success: true,
@@ -330,7 +332,7 @@ export default {
           await env.DB.prepare('DELETE FROM admin_sessions WHERE token_hash = ?').bind(tokenHash).run();
         }
         const isSecure = url.protocol === 'https:' || env.ENVIRONMENT === 'production';
-        const clearCookie = `${COOKIE_NAME}=; HttpOnly; ${isSecure ? 'Secure; ' : ''}SameSite=Lax; Path=/; Max-Age=0`;
+        const clearCookie = `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
         return json({ success: true, message: 'Logged out successfully' }, 200, { 'Set-Cookie': clearCookie });
       }
 

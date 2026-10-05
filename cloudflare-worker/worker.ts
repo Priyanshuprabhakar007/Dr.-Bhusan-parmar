@@ -714,9 +714,18 @@ export default {
           if (!isEnquiryManager) return json({ error: 'Forbidden' }, 403);
           const id = pathname.replace('/api/admin/second-opinions/', '');
           const body = (await request.json().catch(() => ({}))) as any;
+          
+          let dbStatus = body.status;
+          if (dbStatus) {
+            const lower = dbStatus.toLowerCase();
+            if (lower === 'pending review') dbStatus = 'new';
+            else if (lower === 'contacted') dbStatus = 'contacted';
+            else if (lower === 'reviewed') dbStatus = 'reviewed';
+          }
+
           await env.DB.prepare(
             `UPDATE second_opinion_requests SET status = COALESCE(?, status), doctor_notes = COALESCE(?, doctor_notes), updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-          ).bind(body.status || null, body.doctorNotes || body.doctor_notes || body.notes || null, id).run();
+          ).bind(dbStatus || null, body.doctorNotes || body.doctor_notes || body.notes || null, id).run();
           return json({ success: true, message: 'Second opinion updated' });
         }
 

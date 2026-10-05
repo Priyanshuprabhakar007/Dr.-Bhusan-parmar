@@ -22,6 +22,7 @@ export const EnquiriesManager: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedEnquiry, setSelectedEnquiry] = useState<ContactEnquiryItem | null>(null);
   const [notesInput, setNotesInput] = useState('');
+  const [operationError, setOperationError] = useState('');
 
   const safeContactEnquiries = Array.isArray(contactEnquiries) ? contactEnquiries : [];
 
@@ -37,17 +38,36 @@ export const EnquiriesManager: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleStatusChange = (id: string, newStatus: ContactEnquiryItem['status']) => {
-    updateContactEnquiryStatus(id, newStatus);
-    if (selectedEnquiry?.id === id) {
+  const handleStatusChange = async (id: string, newStatus: ContactEnquiryItem['status']) => {
+    setOperationError('');
+    const success = await updateContactEnquiryStatus(id, newStatus);
+    if (!success) {
+      setOperationError('Failed to update status. Please try again.');
+    } else if (selectedEnquiry?.id === id) {
       setSelectedEnquiry(prev => (prev ? { ...prev, status: newStatus } : null));
     }
   };
 
-  const handleSaveNotes = (id: string) => {
+  const handleSaveNotes = async (id: string) => {
     if (!selectedEnquiry) return;
-    updateContactEnquiryStatus(id, selectedEnquiry.status, notesInput);
-    setSelectedEnquiry(prev => (prev ? { ...prev, notes: notesInput } : null));
+    setOperationError('');
+    const success = await updateContactEnquiryStatus(id, selectedEnquiry.status, notesInput);
+    if (!success) {
+      setOperationError('Failed to save notes. Please try again.');
+    } else {
+      setSelectedEnquiry(prev => (prev ? { ...prev, notes: notesInput } : null));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this enquiry?')) return;
+    setOperationError('');
+    const success = await deleteContactEnquiry(id);
+    if (!success) {
+      setOperationError('Failed to delete enquiry. Please try again.');
+    } else {
+      setSelectedEnquiry(null);
+    }
   };
 
   const handleExportCSV = () => {
@@ -274,6 +294,12 @@ export const EnquiriesManager: React.FC = () => {
                 Save Notes
               </button>
             </div>
+
+            {operationError && (
+              <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
+                {operationError}
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <button

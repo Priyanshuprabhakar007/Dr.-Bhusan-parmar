@@ -393,10 +393,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: f.id,
                 name: f.original_filename || f.name,
                 size: f.file_size || f.size || 0,
-                type: f.mime_type || f.type || 'application/octet-stream'
+                type: f.mime_type || f.type || 'application/octet-stream',
+                category: f.file_type || 'Other'
               })),
               submittedAt: r.created_at || new Date().toISOString(),
-              status: mappedStatus as any,
+              status: (['new', 'pending', 'pending_review', 'under_review'].includes((r.status || '').toLowerCase()) 
+                       ? 'Pending Review' 
+                       : (r.status || '').toLowerCase() === 'contacted' 
+                         ? 'Contacted' 
+                         : ['reviewed', 'report_ready', 'completed'].includes((r.status || '').toLowerCase()) 
+                           ? 'Reviewed' 
+                           : 'Pending Review') as any,
               notes: r.doctor_notes || r.notes || ''
             };
           });
@@ -1029,21 +1036,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateAppointmentStatus = async (id: string, status: AppointmentSubmission['status'], notes?: string): Promise<boolean> => {
-    const res = await api.put(`/api/admin/enquiries/${id}`, { status, notes });
-    if (!res.ok) return false;
-    setAppointments(prev =>
-      prev.map(a => (a.id === id ? { ...a, status, ...(notes ? { notes } : {}) } : a))
-    );
-    logActivity('STATUS_CHANGE', 'APPOINTMENT', id, `Changed appointment status to ${status}`);
-    return true;
+    try {
+      await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+      setAppointments(prev =>
+        prev.map(a => (a.id === id ? { ...a, status, ...(notes ? { notes } : {}) } : a))
+      );
+      logActivity('STATUS_CHANGE', 'APPOINTMENT', id, `Changed appointment status to ${status}`);
+      return true;
+    } catch (error) {
+      console.warn('Failed to update appointment status', error);
+      return false;
+    }
   };
 
   const deleteAppointment = async (id: string): Promise<boolean> => {
-    const res = await api.delete(`/api/admin/enquiries/${id}`);
-    if (!res.ok) return false;
-    setAppointments(prev => prev.filter(a => a.id !== id));
-    logActivity('DELETE', 'APPOINTMENT', id, 'Deleted appointment lead');
-    return true;
+    try {
+      await api.delete(`/api/admin/enquiries/${id}`);
+      setAppointments(prev => prev.filter(a => a.id !== id));
+      logActivity('DELETE', 'APPOINTMENT', id, 'Deleted appointment lead');
+      return true;
+    } catch (error) {
+      console.warn('Failed to delete appointment', error);
+      return false;
+    }
   };
 
   const submitSecondOpinion = async (
@@ -1078,21 +1093,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSecondOpinionStatus = async (id: string, status: SecondOpinionSubmission['status'], notes?: string): Promise<boolean> => {
-    const res = await api.put(`/api/admin/second-opinions/${id}`, { status, doctorNotes: notes });
-    if (!res.ok) return false;
-    setSecondOpinions(prev =>
-      prev.map(s => (s.id === id ? { ...s, status } : s))
-    );
-    logActivity('STATUS_CHANGE', 'SECOND_OPINION', id, `Changed second opinion status to ${status}`);
-    return true;
+    try {
+      await api.put(`/api/admin/second-opinions/${id}`, { status, doctorNotes: notes });
+      setSecondOpinions(prev =>
+        prev.map(s => (s.id === id ? { ...s, status } : s))
+      );
+      logActivity('STATUS_CHANGE', 'SECOND_OPINION', id, `Changed second opinion status to ${status}`);
+      return true;
+    } catch (error) {
+      console.warn('Failed to update second opinion status', error);
+      return false;
+    }
   };
 
   const deleteSecondOpinion = async (id: string): Promise<boolean> => {
-    const res = await api.delete(`/api/admin/second-opinions/${id}`);
-    if (!res.ok) return false;
-    setSecondOpinions(prev => prev.filter(s => s.id !== id));
-    logActivity('DELETE', 'SECOND_OPINION', id, 'Deleted second opinion submission');
-    return true;
+    try {
+      await api.delete(`/api/admin/second-opinions/${id}`);
+      setSecondOpinions(prev => prev.filter(s => s.id !== id));
+      logActivity('DELETE', 'SECOND_OPINION', id, 'Deleted second opinion submission');
+      return true;
+    } catch (error) {
+      console.warn('Failed to delete second opinion', error);
+      return false;
+    }
   };
 
   const submitContactEnquiry = async (
@@ -1123,21 +1146,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateContactEnquiryStatus = async (id: string, status: ContactEnquiryItem['status'], notes?: string): Promise<boolean> => {
-    const res = await api.put(`/api/admin/enquiries/${id}`, { status, notes });
-    if (!res.ok) return false;
-    setContactEnquiries(prev =>
-      prev.map(e => (e.id === id ? { ...e, status, ...(notes ? { notes } : {}) } : e))
-    );
-    logActivity('STATUS_CHANGE', 'CONTACT_ENQUIRY', id, `Updated enquiry status to ${status}`);
-    return true;
+    try {
+      await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+      setContactEnquiries(prev =>
+        prev.map(e => (e.id === id ? { ...e, status, ...(notes ? { notes } : {}) } : e))
+      );
+      logActivity('STATUS_CHANGE', 'CONTACT_ENQUIRY', id, `Updated enquiry status to ${status}`);
+      return true;
+    } catch (error) {
+      console.warn('Failed to update contact enquiry status', error);
+      return false;
+    }
   };
 
   const deleteContactEnquiry = async (id: string): Promise<boolean> => {
-    const res = await api.delete(`/api/admin/enquiries/${id}`);
-    if (!res.ok) return false;
-    setContactEnquiries(prev => prev.filter(e => e.id !== id));
-    logActivity('DELETE', 'CONTACT_ENQUIRY', id, 'Deleted contact enquiry');
-    return true;
+    try {
+      await api.delete(`/api/admin/enquiries/${id}`);
+      setContactEnquiries(prev => prev.filter(e => e.id !== id));
+      logActivity('DELETE', 'CONTACT_ENQUIRY', id, 'Deleted contact enquiry');
+      return true;
+    } catch (error) {
+      console.warn('Failed to delete contact enquiry', error);
+      return false;
+    }
   };
 
   // User Management (Super Admin)
@@ -1168,27 +1199,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateAdminUserRole = async (id: string, role: AdminRole): Promise<boolean> => {
-    const res = await api.put(`/api/admin/users/${id}`, { role });
-    if (!res.ok) return false;
-    setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)));
-    logActivity('USER_ROLE_CHANGED', 'SECURITY', id, `Changed user role to ${role}`);
-    return true;
+    try {
+      await api.put(`/api/admin/users/${id}`, { role });
+      setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)));
+      logActivity('USER_ROLE_CHANGED', 'SECURITY', id, `Changed user role to ${role}`);
+      return true;
+    } catch (error) {
+      console.warn('Failed to update admin role', error);
+      return false;
+    }
   };
 
   const updateAdminUserStatus = async (id: string, status: 'active' | 'disabled'): Promise<boolean> => {
-    const res = await api.put(`/api/admin/users/${id}`, { status });
-    if (!res.ok) return false;
-    setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, status } : u)));
-    logActivity('USER_STATUS_CHANGED', 'SECURITY', id, `Changed user status to ${status}`);
-    return true;
+    try {
+      await api.put(`/api/admin/users/${id}`, { status });
+      setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, status } : u)));
+      logActivity('USER_STATUS_CHANGED', 'SECURITY', id, `Changed user status to ${status}`);
+      return true;
+    } catch (error) {
+      console.warn('Failed to update admin user status', error);
+      return false;
+    }
   };
 
   const deleteAdminUser = async (id: string): Promise<boolean> => {
-    const res = await api.delete(`/api/admin/users/${id}`);
-    if (!res.ok) return false;
-    setAdminUsers(prev => prev.filter(u => u.id !== id));
-    logActivity('USER_DELETED', 'SECURITY', id, 'Deleted administrator account');
-    return true;
+    try {
+      await api.delete(`/api/admin/users/${id}`);
+      setAdminUsers(prev => prev.filter(u => u.id !== id));
+      logActivity('USER_DELETED', 'SECURITY', id, 'Deleted administrator account');
+      return true;
+    } catch (error) {
+      console.warn('Failed to delete admin user', error);
+      return false;
+    }
   };
 
   const resetAllDataToDefaults = () => {

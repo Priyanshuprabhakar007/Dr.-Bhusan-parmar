@@ -25,8 +25,48 @@ export const SecondOpinionsManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedLead, setSelectedLead] = useState<SecondOpinionSubmission | null>(null);
+  const [operationError, setOperationError] = useState('');
 
   const safeOpinions = Array.isArray(secondOpinions) ? secondOpinions : [];
+  
+  const handleDownloadReport = async (
+    requestId: string,
+    file: any
+  ) => {
+    try {
+      setOperationError('');
+      const response = await fetch(
+        apiUrl(
+          `/api/admin/second-opinions/${requestId}/download-report/${file.id}`
+        ),
+        {
+          method: 'GET',
+          credentials: 'include'
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error(`Report download failed (${response.status})`);
+      }
+  
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+  
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = file.name || 'medical-report';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+  
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.warn('Failed to download private medical report', error);
+      setOperationError(
+        'The medical report could not be opened. Please try again.'
+      );
+    }
+  };
 
   const filteredOpinions = safeOpinions.filter(lead => {
     const q = searchQuery.toLowerCase();
@@ -41,10 +81,24 @@ export const SecondOpinionsManager: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleStatusChange = (id: string, newStatus: SecondOpinionSubmission['status']) => {
-    updateSecondOpinionStatus(id, newStatus);
-    if (selectedLead?.id === id) {
+  const handleStatusChange = async (id: string, newStatus: SecondOpinionSubmission['status']) => {
+    setOperationError('');
+    const success = await updateSecondOpinionStatus(id, newStatus);
+    if (!success) {
+      setOperationError('Failed to update status. Please try again.');
+    } else if (selectedLead?.id === id) {
       setSelectedLead(prev => (prev ? { ...prev, status: newStatus } : null));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this second opinion dossier?')) return;
+    setOperationError('');
+    const success = await deleteSecondOpinion(id);
+    if (!success) {
+      setOperationError('Failed to delete dossier. Please try again.');
+    } else {
+      setSelectedLead(null);
     }
   };
 
@@ -313,42 +367,17 @@ export const SecondOpinionsManager: React.FC = () => {
                         {file.category} • {(file.size / 1024).toFixed(0)} KB
                       </div>
                     </div>
-                    <a
-                      href="#"
-                      onClick={e => {
-                        e.preventDefault();
-                        alert(`Opening patient file: ${file.name}`);
-                      }}
+                    <button
+                      onClick={() => handleDownloadReport(selectedLead.id, file)}
                       className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-[#073F3D] flex items-center space-x-1"
                     >
-                      <Eye className="w-3 h-3 text-[#149A96]" />
-                      <span>View File</span>
-                    </a>
+                      <Download className="w-3 h-3 text-[#149A96]" />
+                      <span>View / Download</span>
+                    </button>
                   </div>
                 ))
               ) : (
-                <div className="p-3 rounded-2xl bg-teal-50/50 border border-teal-100 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-[#071D2D]">
-                      Biopsy_and_PET_Staging_Scan.pdf
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Encrypted PDF Document • 4.2 MB
-                    </div>
-                  </div>
-
-                  <a
-                    href="#"
-                    onClick={e => {
-                      e.preventDefault();
-                      alert('Clinical Dossier Viewer: Decrypting and opening medical reports...');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-[#073F3D] flex items-center space-x-1"
-                  >
-                    <Eye className="w-3 h-3 text-[#149A96]" />
-                    <span>View Report</span>
-                  </a>
-                </div>
+                <p className="text-xs text-slate-500 italic p-3">No medical reports were uploaded with this request.</p>
               )}
             </div>
 

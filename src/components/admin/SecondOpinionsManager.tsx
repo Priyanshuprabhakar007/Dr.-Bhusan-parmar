@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { SecondOpinionSubmission } from '../../types';
+import { apiUrl } from '../../lib/api';
 import {
   FileCheck,
   Search,

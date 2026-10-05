@@ -472,8 +472,8 @@ export default {
 
         const id = `enq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await env.DB.prepare(
-          `INSERT INTO enquiries (id, type, name, phone, email, preferred_date, preferred_time, location_id, cancer_type, message, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO enquiries (id, type, name, phone, email, preferred_date, preferred_time, location_id, cancer_type, consultation_type, message, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           id,
           body.type || 'general',
@@ -484,6 +484,7 @@ export default {
           body.preferredTime || body.preferred_time || '',
           body.locationId || body.location_id || '',
           body.cancerType || body.cancer_type || '',
+          body.consultationType || body.consultation_type || '',
           body.message || '',
           'new'
         ).run();
@@ -726,10 +727,18 @@ export default {
             const body = (await request.json().catch(() => ({}))) as any;
             const existingDoc = await env.DB.prepare('SELECT id FROM doctor_profile ORDER BY updated_at DESC LIMIT 1').first<any>();
             let docId = existingDoc?.id;
+            
             if (!docId) {
-              docId = 'doc-1';
-              await env.DB.prepare('INSERT INTO doctor_profile (id, name, speciality, updated_at) VALUES (?, "Dr. Bhushan Parmar", "Senior Medical Oncologist", CURRENT_TIMESTAMP)').bind(docId).run();
+                // Validate required fields for initial insert
+                if (!body.name || !body.speciality || !body.positioning || (body.experienceYears === undefined && body.experience_years === undefined)) {
+                    return json({ error: 'Missing required doctor fields (name, speciality, positioning, experienceYears)' }, 400);
+                }
+                docId = 'doc-1';
+                await env.DB.prepare('INSERT INTO doctor_profile (id, name, speciality, positioning, experience_years, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+                    .bind(docId, body.name, body.speciality, body.positioning, body.experienceYears || body.experience_years)
+                    .run();
             }
+
             const updateRes = await env.DB.prepare(
               `UPDATE doctor_profile
                SET name = COALESCE(?, name),

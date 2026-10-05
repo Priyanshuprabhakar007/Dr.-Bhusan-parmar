@@ -308,93 +308,109 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // FETCH AUTHENTICATED ADMIN DATA FROM D1
   const fetchAuthenticatedAdminData = useCallback(async (user: AdminUser) => {
-    try {
-      const enqRes = await api.get('/api/admin/enquiries');
-      if (enqRes.ok && enqRes.data?.enquiries) {
-        const rawEnquiries = enqRes.data.enquiries;
-        const apps: AppointmentSubmission[] = [];
-        const contacts: ContactEnquiryItem[] = [];
+    const { role } = user;
 
-        for (const row of rawEnquiries) {
-          const type = row.type || 'contact';
-          const statusNorm = (row.status || 'new').toLowerCase();
-          const mappedStatus = 
-            statusNorm === 'replied' ? 'Replied' :
-            statusNorm === 'archived' ? 'Archived' :
-            statusNorm === 'confirmed' ? 'Confirmed' :
-            statusNorm === 'completed' ? 'Completed' :
-            statusNorm === 'cancelled' ? 'Cancelled' :
-            statusNorm === 'in_progress' ? 'In Progress' :
-            statusNorm === 'contacted' ? 'Contacted' : 'New';
+    // Enquiries & Second Opinions (Super Admin + Enquiry Manager)
+    if (role === 'super_admin' || role === 'enquiry_manager') {
+      try {
+        const enqRes = await api.get('/api/admin/enquiries');
+        if (enqRes.ok && enqRes.data?.enquiries) {
+          const rawEnquiries = enqRes.data.enquiries;
+          const apps: AppointmentSubmission[] = [];
+          const contacts: ContactEnquiryItem[] = [];
 
-          if (type === 'appointment') {
-            apps.push({
-              id: row.id,
-              patientName: row.name,
-              phone: row.phone,
-              email: row.email || '',
-              consultationType: row.message || 'Clinic Consultation',
-              cancerTypeOrConcern: row.cancer_type || 'General Oncology',
-              preferredDate: row.preferred_date || new Date().toISOString().split('T')[0],
-              preferredSlot: row.preferred_time || 'Morning',
-              notes: row.admin_notes || row.message || '',
-              submittedAt: row.created_at || new Date().toISOString(),
-              status: mappedStatus as any
-            });
-          } else {
-            contacts.push({
-              id: row.id,
-              name: row.name,
-              phone: row.phone,
-              email: row.email || '',
-              message: row.message || '',
-              sourcePage: 'Website Contact',
-              submittedDate: row.created_at || new Date().toISOString(),
-              status: mappedStatus as any,
-              notes: row.admin_notes || ''
-            });
+          for (const row of rawEnquiries) {
+            const type = row.type || 'contact';
+            const statusNorm = (row.status || 'new').toLowerCase();
+            const mappedStatus = 
+              statusNorm === 'replied' ? 'Replied' :
+              statusNorm === 'archived' ? 'Archived' :
+              statusNorm === 'confirmed' ? 'Confirmed' :
+              statusNorm === 'completed' ? 'Completed' :
+              statusNorm === 'cancelled' ? 'Cancelled' :
+              statusNorm === 'in_progress' ? 'In Progress' :
+              statusNorm === 'contacted' ? 'Contacted' : 'New';
+
+            if (type === 'appointment') {
+              apps.push({
+                id: row.id,
+                patientName: row.name,
+                phone: row.phone,
+                email: row.email || '',
+                consultationType: row.consultation_type || 'Clinic Consultation',
+                cancerTypeOrConcern: row.cancer_type || 'General Oncology',
+                preferredDate: row.preferred_date || new Date().toISOString().split('T')[0],
+                preferredSlot: row.preferred_time || 'Morning',
+                notes: row.admin_notes || row.message || '',
+                submittedAt: row.created_at || new Date().toISOString(),
+                status: mappedStatus as any
+              });
+            } else {
+              contacts.push({
+                id: row.id,
+                name: row.name,
+                phone: row.phone,
+                email: row.email || '',
+                message: row.message || '',
+                sourcePage: 'Website Contact',
+                submittedDate: row.created_at || new Date().toISOString(),
+                status: mappedStatus as any,
+                notes: row.admin_notes || ''
+              });
+            }
           }
+          setAppointments(apps);
+          setContactEnquiries(contacts);
         }
-        setAppointments(apps);
-        setContactEnquiries(contacts);
+      } catch (err) {
+        console.warn('Failed to fetch enquiries:', err);
+        setAppointments([]);
+        setContactEnquiries([]);
       }
 
-      const soRes = await api.get('/api/admin/second-opinions');
-      if (soRes.ok && soRes.data?.requests) {
-        const rawSo = soRes.data.requests;
-        const mappedSo: SecondOpinionSubmission[] = rawSo.map((r: any) => {
-          const statusNorm = (r.status || 'pending').toLowerCase();
-          const mappedStatus =
-            statusNorm === 'reviewed' ? 'Reviewed' :
-            statusNorm === 'completed' ? 'Completed' :
-            statusNorm === 'archived' ? 'Archived' : 'Pending Review';
+      try {
+        const soRes = await api.get('/api/admin/second-opinions');
+        if (soRes.ok && soRes.data?.requests) {
+          const rawSo = soRes.data.requests;
+          const mappedSo: SecondOpinionSubmission[] = rawSo.map((r: any) => {
+            const statusNorm = (r.status || 'pending').toLowerCase();
+            const mappedStatus =
+              statusNorm === 'reviewed' ? 'Reviewed' :
+              statusNorm === 'completed' ? 'Completed' :
+              statusNorm === 'archived' ? 'Archived' : 'Pending Review';
 
-          return {
-            id: r.id,
-            name: r.patient_name || r.name,
-            phone: r.phone || '',
-            email: r.email || '',
-            cityCountry: r.city || '',
-            cancerType: r.cancer_type || '',
-            currentDiagnosis: r.stage || '',
-            previousTreatment: r.current_treatment || r.previousTreatment || '',
-            message: r.specific_questions || r.message || '',
-            attachedFiles: (r.files || []).map((f: any) => ({
-              id: f.id,
-              name: f.original_filename || f.name,
-              size: f.file_size || f.size || 0,
-              type: f.mime_type || f.type || 'application/octet-stream',
-              url: f.public_url || f.url || '#'
-            })),
-            submittedAt: r.created_at || new Date().toISOString(),
-            status: mappedStatus as any,
-            notes: r.doctor_notes || r.notes || ''
-          };
-        });
-        setSecondOpinions(mappedSo);
+            return {
+              id: r.id,
+              name: r.patient_name || r.name,
+              phone: r.phone || '',
+              email: r.email || '',
+              cityCountry: r.city || '',
+              cancerType: r.cancer_type || '',
+              currentDiagnosis: r.stage || '',
+              previousTreatment: r.current_treatment || r.previousTreatment || '',
+              message: r.specific_questions || r.message || '',
+              attachedFiles: (r.files || []).map((f: any) => ({
+                id: f.id,
+                name: f.original_filename || f.name,
+                size: f.file_size || f.size || 0,
+                type: f.mime_type || f.type || 'application/octet-stream'
+              })),
+              submittedAt: r.created_at || new Date().toISOString(),
+              status: mappedStatus as any,
+              notes: r.doctor_notes || r.notes || ''
+            };
+          });
+          setSecondOpinions(mappedSo);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch second opinions:', err);
+        setSecondOpinions([]);
       }
+    }
 
-      if (user.role === 'super_admin') {
+    // Admin Users (Super Admin Only)
+    if (role === 'super_admin') {
+      try {
         const usersRes = await api.get('/api/admin/users');
         if (usersRes.ok && usersRes.data?.users) {
           const rawUsers = usersRes.data.users;
@@ -409,9 +425,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }));
           setAdminUsers(mappedUsers);
         }
+      } catch (err) {
+        console.warn('Failed to fetch admin users:', err);
+        setAdminUsers([]);
       }
-    } catch (err) {
-      console.warn('Failed to fetch authenticated admin data:', err);
     }
   }, []);
 
@@ -987,7 +1004,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         preferred_date: data.preferredDate,
         preferred_time: data.preferredSlot,
         cancer_type: data.cancerTypeOrConcern,
-        message: data.notes || data.consultationType
+        consultation_type: data.consultationType,
+        message: data.notes || ''
       });
       const id = res.data?.enquiryId || `app-${Date.now()}`;
       const newSubmission: AppointmentSubmission = {
@@ -1155,32 +1173,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetAllDataToDefaults = () => {
     setDoctorProfile(initialDoctorProfile);
     setPracticeLocation(initialPracticeLocation);
-    setTreatments(initialTreatments);
-    setCancers(initialCancers);
-    setBlogPosts(initialBlogPosts as any);
-    setFaqs(initialFAQs);
-    setTestimonials(initialTestimonials);
+    setTreatments([]);
+    setCancers([]);
+    setBlogPosts([]);
+    setFaqs([]);
+    setTestimonials([]);
     setHeroContent(defaultHeroContent);
     setAboutDoctorContent(defaultAboutDoctorContent);
     setSecondOpinionContent(defaultSecondOpinionContent);
     setHeroAnimationSettings(defaultHeroAnimationSettings);
     setGlobalAnimationSettings(defaultGlobalAnimationSettings);
     setHomepageSections(defaultHomepageSections);
-    setLocations(defaultLocations);
-    setBodyExplorerRegions(defaultBodyExplorerRegions);
-    setCancerCategories(defaultCancerCategories);
-    setCancerPages(defaultCancerPages);
-    setHowCanWeHelp(defaultHowCanWeHelp);
-    setTreatmentJourney(defaultJourneySteps);
-    setMediaAssets(defaultMediaAssets);
-    setNavigationMenu(defaultNavigation);
+    setLocations([]);
+    setBodyExplorerRegions([]);
+    setCancerCategories([]);
+    setCancerPages([]);
+    setHowCanWeHelp([]);
+    setTreatmentJourney([]);
+    setMediaAssets([]);
+    setNavigationMenu([]);
     setFooterConfig(defaultFooterConfig);
     setSiteSettings(defaultSiteSettings);
     setSeoGlobalConfig(defaultSeoGlobalConfig);
-    setRedirectRules(defaultRedirectRules);
+    setRedirectRules([]);
     setFormBuilderConfig(defaultFormBuilderConfig);
-    setActivityLogs(defaultActivityLogs);
-    setAdminUsers(defaultAdminUsers);
+    setActivityLogs([]);
+    setAdminUsers([]);
+    setAppointments([]);
+    setSecondOpinions([]);
+    setContactEnquiries([]);
     localStorage.clear();
   };
 

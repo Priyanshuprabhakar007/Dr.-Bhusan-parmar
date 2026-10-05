@@ -26,6 +26,8 @@ export const AppointmentsManager: React.FC = () => {
 
   const safeAppointments = Array.isArray(appointments) ? appointments : [];
 
+  const [operationError, setOperationError] = useState('');
+
   const filteredAppointments = safeAppointments.filter(lead => {
     const q = searchQuery.toLowerCase();
     const matchSearch =
@@ -38,17 +40,37 @@ export const AppointmentsManager: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleStatusChange = (id: string, newStatus: AppointmentSubmission['status']) => {
-    updateAppointmentStatus(id, newStatus);
+  const handleStatusChange = async (id: string, newStatus: AppointmentSubmission['status']) => {
+    setOperationError('');
+    const success = await updateAppointmentStatus(id, newStatus);
+    if (!success) {
+      setOperationError('Failed to update status. Please try again.');
+      return;
+    }
     if (selectedLead?.id === id) {
       setSelectedLead(prev => (prev ? { ...prev, status: newStatus } : null));
     }
   };
 
-  const handleSaveNotes = (id: string) => {
+  const handleSaveNotes = async (id: string) => {
     if (!selectedLead) return;
-    updateAppointmentStatus(id, selectedLead.status, notesInput);
+    setOperationError('');
+    const success = await updateAppointmentStatus(id, selectedLead.status, notesInput);
+    if (!success) {
+      setOperationError('Failed to update notes. Please try again.');
+      return;
+    }
     setSelectedLead(prev => (prev ? { ...prev, notes: notesInput } : null));
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    setOperationError('');
+    const success = await deleteAppointment(id);
+    if (!success) {
+      setOperationError('Failed to delete appointment. Please try again.');
+      return;
+    }
+    setSelectedLead(null);
   };
 
   const handleExportCSV = () => {

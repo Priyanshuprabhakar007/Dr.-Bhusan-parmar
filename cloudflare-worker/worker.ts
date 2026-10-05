@@ -618,7 +618,19 @@ export default {
         if (pathname.startsWith('/api/admin/users/') && request.method === 'DELETE') {
           if (!isSuperAdmin) return json({ error: 'Forbidden' }, 403);
           const targetId = pathname.replace('/api/admin/users/', '');
+          
+          const targetUser = await env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(targetId).first<any>();
+          if (!targetUser) return json({ error: 'User not found' }, 404);
+
           if (targetId === sessionUser.id) return json({ error: 'Cannot delete active administrator' }, 400);
+
+          if (targetUser.role === 'super_admin') {
+            const activeSuperAdmins = await env.DB.prepare('SELECT COUNT(*) as cnt FROM admin_users WHERE role = "super_admin" AND status = "active" AND id != ?').bind(targetId).first<any>();
+            if (!activeSuperAdmins || activeSuperAdmins.cnt < 1) {
+              return json({ error: 'Cannot delete the last active super administrator' }, 400);
+            }
+          }
+
           await env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(targetId).run();
           return json({ success: true, message: 'Admin deleted' });
         }
@@ -711,8 +723,18 @@ export default {
         if (pathname.startsWith('/api/admin/second-opinions/') && request.method === 'DELETE') {
           if (!isEnquiryManager) return json({ error: 'Forbidden' }, 403);
           const id = pathname.replace('/api/admin/second-opinions/', '');
+          
+          const files = await env.DB.prepare('SELECT id, storage_key FROM second_opinion_files WHERE request_id = ?').bind(id).all<any>();
+          
+          if (files.results && files.results.length > 0) {
+            for (const file of files.results) {
+              await env.PRIVATE_REPORTS.delete(file.storage_key);
+            }
+            await env.DB.prepare('DELETE FROM second_opinion_files WHERE request_id = ?').bind(id).run();
+          }
+          
           await env.DB.prepare('DELETE FROM second_opinion_requests WHERE id = ?').bind(id).run();
-          return json({ success: true, message: 'Second opinion deleted' });
+          return json({ success: true, message: 'Second opinion dossier deleted' });
         }
 
         if (!isContentManager) return json({ error: 'Forbidden: Content management privileges required' }, 403);

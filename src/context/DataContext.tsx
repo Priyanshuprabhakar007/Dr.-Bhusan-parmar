@@ -157,7 +157,7 @@ interface DataContextType {
   logoutAdmin: () => void; // backward compatibility
 
   // CMS Updaters
-  updateDoctorProfile: (profile: Partial<DoctorProfile>) => void;
+  updateDoctorProfile: (profile: Partial<DoctorProfile>) => Promise<boolean>;
   updatePracticeLocation: (loc: Partial<PracticeLocation>) => void;
   updateHeroContent: (content: Partial<HeroContent>) => void;
   updateAboutDoctorContent: (content: Partial<AboutDoctorSectionContent>) => void;
@@ -207,20 +207,20 @@ interface DataContextType {
 
   // Submissions & Enquiries
   submitAppointment: (data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<boolean>;
-  updateAppointmentStatus: (id: string, status: AppointmentSubmission['status'], notes?: string) => void;
-  deleteAppointment: (id: string) => void;
+  updateAppointmentStatus: (id: string, status: AppointmentSubmission['status'], notes?: string) => Promise<boolean>;
+  deleteAppointment: (id: string) => Promise<boolean>;
   submitSecondOpinion: (opinion: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<boolean>;
-  updateSecondOpinionStatus: (id: string, status: SecondOpinionSubmission['status'], notes?: string) => void;
-  deleteSecondOpinion: (id: string) => void;
+  updateSecondOpinionStatus: (id: string, status: SecondOpinionSubmission['status'], notes?: string) => Promise<boolean>;
+  deleteSecondOpinion: (id: string) => Promise<boolean>;
   submitContactEnquiry: (enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'>) => Promise<boolean>;
-  updateContactEnquiryStatus: (id: string, status: ContactEnquiryItem['status'], notes?: string) => void;
-  deleteContactEnquiry: (id: string) => void;
+  updateContactEnquiryStatus: (id: string, status: ContactEnquiryItem['status'], notes?: string) => Promise<boolean>;
+  deleteContactEnquiry: (id: string) => Promise<boolean>;
 
   // User Management
   addAdminUser: (user: Omit<AdminUser, 'id' | 'createdAt'>, passwordPlain: string) => Promise<boolean>;
-  updateAdminUserRole: (id: string, role: AdminRole) => void;
-  updateAdminUserStatus: (id: string, status: 'active' | 'disabled') => void;
-  deleteAdminUser: (id: string) => void;
+  updateAdminUserRole: (id: string, role: AdminRole) => Promise<boolean>;
+  updateAdminUserStatus: (id: string, status: 'active' | 'disabled') => Promise<boolean>;
+  deleteAdminUser: (id: string) => Promise<boolean>;
 
   // Activity Log & Reset
   logActivity: (action: string, entityType: string, entityId?: string, details?: string) => void;
@@ -635,11 +635,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // CMS Updaters - Send updates directly to Cloudflare D1 Worker API using centralized api client
-  const updateDoctorProfile = async (profile: Partial<DoctorProfile>) => {
-    const updated = { ...doctorProfile, ...profile };
-    await api.put('/api/admin/doctor', updated);
-    setDoctorProfile(updated);
-    logActivity('UPDATE', 'DOCTOR_PROFILE', 'dr-bhushan', 'Doctor profile and credentials updated in D1');
+  const updateDoctorProfile = async (profile: Partial<DoctorProfile>): Promise<boolean> => {
+    try {
+      await api.put('/api/admin/doctor', profile);
+      setDoctorProfile(prev => ({ ...prev, ...profile }));
+      logActivity('UPDATE', 'DOCTOR_PROFILE', 'dr-bhushan', 'Doctor profile updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update doctor profile in D1', error);
+      return false;
+    }
   };
 
   const updatePracticeLocation = (loc: Partial<PracticeLocation>) => {
@@ -1023,18 +1028,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateAppointmentStatus = async (id: string, status: AppointmentSubmission['status'], notes?: string) => {
-    await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+  const updateAppointmentStatus = async (id: string, status: AppointmentSubmission['status'], notes?: string): Promise<boolean> => {
+    const res = await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+    if (!res.ok) return false;
     setAppointments(prev =>
       prev.map(a => (a.id === id ? { ...a, status, ...(notes ? { notes } : {}) } : a))
     );
     logActivity('STATUS_CHANGE', 'APPOINTMENT', id, `Changed appointment status to ${status}`);
+    return true;
   };
 
-  const deleteAppointment = async (id: string) => {
-    await api.delete(`/api/admin/enquiries/${id}`);
+  const deleteAppointment = async (id: string): Promise<boolean> => {
+    const res = await api.delete(`/api/admin/enquiries/${id}`);
+    if (!res.ok) return false;
     setAppointments(prev => prev.filter(a => a.id !== id));
     logActivity('DELETE', 'APPOINTMENT', id, 'Deleted appointment lead');
+    return true;
   };
 
   const submitSecondOpinion = async (
@@ -1068,18 +1077,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateSecondOpinionStatus = async (id: string, status: SecondOpinionSubmission['status'], notes?: string) => {
-    await api.put(`/api/admin/second-opinions/${id}`, { status, doctorNotes: notes });
+  const updateSecondOpinionStatus = async (id: string, status: SecondOpinionSubmission['status'], notes?: string): Promise<boolean> => {
+    const res = await api.put(`/api/admin/second-opinions/${id}`, { status, doctorNotes: notes });
+    if (!res.ok) return false;
     setSecondOpinions(prev =>
       prev.map(s => (s.id === id ? { ...s, status } : s))
     );
     logActivity('STATUS_CHANGE', 'SECOND_OPINION', id, `Changed second opinion status to ${status}`);
+    return true;
   };
 
-  const deleteSecondOpinion = async (id: string) => {
-    await api.delete(`/api/admin/second-opinions/${id}`);
+  const deleteSecondOpinion = async (id: string): Promise<boolean> => {
+    const res = await api.delete(`/api/admin/second-opinions/${id}`);
+    if (!res.ok) return false;
     setSecondOpinions(prev => prev.filter(s => s.id !== id));
     logActivity('DELETE', 'SECOND_OPINION', id, 'Deleted second opinion submission');
+    return true;
   };
 
   const submitContactEnquiry = async (
@@ -1109,18 +1122,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateContactEnquiryStatus = async (id: string, status: ContactEnquiryItem['status'], notes?: string) => {
-    await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+  const updateContactEnquiryStatus = async (id: string, status: ContactEnquiryItem['status'], notes?: string): Promise<boolean> => {
+    const res = await api.put(`/api/admin/enquiries/${id}`, { status, notes });
+    if (!res.ok) return false;
     setContactEnquiries(prev =>
       prev.map(e => (e.id === id ? { ...e, status, ...(notes ? { notes } : {}) } : e))
     );
     logActivity('STATUS_CHANGE', 'CONTACT_ENQUIRY', id, `Updated enquiry status to ${status}`);
+    return true;
   };
 
-  const deleteContactEnquiry = async (id: string) => {
-    await api.delete(`/api/admin/enquiries/${id}`);
+  const deleteContactEnquiry = async (id: string): Promise<boolean> => {
+    const res = await api.delete(`/api/admin/enquiries/${id}`);
+    if (!res.ok) return false;
     setContactEnquiries(prev => prev.filter(e => e.id !== id));
     logActivity('DELETE', 'CONTACT_ENQUIRY', id, 'Deleted contact enquiry');
+    return true;
   };
 
   // User Management (Super Admin)
@@ -1150,24 +1167,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateAdminUserRole = async (id: string, role: AdminRole) => {
-    await api.put(`/api/admin/users/${id}`, { role });
+  const updateAdminUserRole = async (id: string, role: AdminRole): Promise<boolean> => {
+    const res = await api.put(`/api/admin/users/${id}`, { role });
+    if (!res.ok) return false;
     setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)));
     logActivity('USER_ROLE_CHANGED', 'SECURITY', id, `Changed user role to ${role}`);
+    return true;
   };
 
-  const updateAdminUserStatus = async (id: string, status: 'active' | 'disabled') => {
-    await api.put(`/api/admin/users/${id}`, { status });
+  const updateAdminUserStatus = async (id: string, status: 'active' | 'disabled'): Promise<boolean> => {
+    const res = await api.put(`/api/admin/users/${id}`, { status });
+    if (!res.ok) return false;
     setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, status } : u)));
     logActivity('USER_STATUS_CHANGED', 'SECURITY', id, `Changed user status to ${status}`);
+    return true;
   };
 
-  const deleteAdminUser = async (id: string) => {
-    try {
-      await api.delete(`/api/admin/users/${id}`);
-    } catch {}
+  const deleteAdminUser = async (id: string): Promise<boolean> => {
+    const res = await api.delete(`/api/admin/users/${id}`);
+    if (!res.ok) return false;
     setAdminUsers(prev => prev.filter(u => u.id !== id));
     logActivity('USER_DELETED', 'SECURITY', id, 'Deleted administrator account');
+    return true;
   };
 
   const resetAllDataToDefaults = () => {

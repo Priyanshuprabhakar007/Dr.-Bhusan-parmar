@@ -27,6 +27,7 @@ export const AdminUsersManager: React.FC = () => {
   const [inviteRole, setInviteRole] = useState<AdminRole>('content_manager');
   const [invitePass, setInvitePass] = useState('');
   const [saveToast, setSaveToast] = useState(false);
+  const [operationError, setOperationError] = useState('');
 
   // Security barrier: only super_admin can manage admin accounts
   if (adminRole !== 'super_admin') {
@@ -47,7 +48,8 @@ export const AdminUsersManager: React.FC = () => {
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addAdminUser(
+    setOperationError('');
+    const success = await addAdminUser(
       {
         email: inviteEmail.trim().toLowerCase(),
         name: inviteName.trim(),
@@ -58,12 +60,42 @@ export const AdminUsersManager: React.FC = () => {
       invitePass
     );
 
+    if (!success) {
+      setOperationError('Administrator account could not be created. Please review the details and try again.');
+      return;
+    }
+
     setIsInviteModalOpen(false);
     setInviteName('');
     setInviteEmail('');
     setInvitePass('');
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 3000);
+  };
+
+  const handleRoleChange = async (userId: string, nextRole: AdminRole) => {
+    setOperationError('');
+    const success = await updateAdminUserRole(userId, nextRole);
+    if (!success) {
+      setOperationError('Failed to update role. Ensure you have required privileges and try again.');
+    }
+  };
+
+  const handleStatusChange = async (userId: string, nextStatus: 'active' | 'disabled') => {
+    setOperationError('');
+    const success = await updateAdminUserStatus(userId, nextStatus);
+    if (!success) {
+      setOperationError('Failed to update status. Ensure you have required privileges and try again.');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setOperationError('');
+    if (!confirm('Are you sure you want to permanently delete this administrator?')) return;
+    const success = await deleteAdminUser(userId);
+    if (!success) {
+      setOperationError('Failed to delete administrator. Ensure you have required privileges and try again.');
+    }
   };
 
   return (
@@ -92,6 +124,13 @@ export const AdminUsersManager: React.FC = () => {
         <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center space-x-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
           <span>Administrator team updated successfully!</span>
+        </div>
+      )}
+
+      {operationError && (
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2 animate-in fade-in">
+          <X className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{operationError}</span>
         </div>
       )}
 
@@ -145,7 +184,7 @@ export const AdminUsersManager: React.FC = () => {
                       <select
                         disabled={isCurrentSelf}
                         value={user.role}
-                        onChange={e => updateAdminUserRole(user.id, e.target.value as AdminRole)}
+                        onChange={e => handleRoleChange(user.id, e.target.value as AdminRole)}
                         className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold bg-white disabled:opacity-60"
                       >
                         <option value="super_admin">Super Admin</option>
@@ -159,7 +198,7 @@ export const AdminUsersManager: React.FC = () => {
                         type="button"
                         disabled={isCurrentSelf}
                         onClick={() =>
-                          updateAdminUserStatus(
+                          handleStatusChange(
                             user.id,
                             user.status === 'active' ? 'disabled' : 'active'
                           )
@@ -182,11 +221,7 @@ export const AdminUsersManager: React.FC = () => {
                       {!isCurrentSelf && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Remove administrator account for ${user.name}?`)) {
-                              deleteAdminUser(user.id);
-                            }
-                          }}
+                          onClick={() => handleDeleteUser(user.id)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           title="Delete user"
                         >

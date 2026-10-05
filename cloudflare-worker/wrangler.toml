@@ -23,4 +23,4 @@ bucket_name = "dr-bhushan-private-reports"
 [vars]
 ENVIRONMENT = "production"
 PUBLIC_MEDIA_URL = "https://media.drbhushanparmar.com"
-ALLOWED_ORIGIN = "https://drbhushanparmar.com"
+ALLOWED_ORIGINS = "https://dr-bhusan-parmar-theta.vercel.app,https://drbhushanparmar.com,https://www.drbhushanparmar.com"

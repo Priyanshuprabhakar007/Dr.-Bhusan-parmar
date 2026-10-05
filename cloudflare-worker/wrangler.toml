@@ -4,23 +4,21 @@ compatibility_date = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Cloudflare D1 Database Binding
-# Note: In production, generate your D1 database via `npx wrangler d1 create dr-bhushan-cms`
 [[d1_databases]]
 binding = "DB"
 database_name = "dr-bhushan-cms"
-database_id = "8fa37260-1e5b-48d8-912a-33ce9bc0915a"
+database_id = "84420c6b-7740-4e95-89d5-ce2e0d071c76"
+migrations_dir = "../migrations"
 
 # Cloudflare R2 Public Media Bucket Binding (Public website assets)
 [[r2_buckets]]
 binding = "PUBLIC_MEDIA"
 bucket_name = "dr-bhushan-public-media"
-preview_bucket_name = "dr-bhushan-public-media-preview"
 
 # Cloudflare R2 Private Bucket Binding (Confidential patient medical reports - NO PUBLIC ACCESS)
 [[r2_buckets]]
 binding = "PRIVATE_REPORTS"
 bucket_name = "dr-bhushan-private-reports"
-preview_bucket_name = "dr-bhushan-private-reports-preview"
 
 [vars]
 ENVIRONMENT = "production"

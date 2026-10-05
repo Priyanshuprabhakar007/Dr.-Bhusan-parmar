@@ -276,7 +276,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [testimonials, setTestimonials] = useState<Testimonial[]>(initialTestimonials);
   const [appointments, setAppointments] = useState<AppointmentSubmission[]>([]);
   const [secondOpinions, setSecondOpinions] = useState<SecondOpinionSubmission[]>([]);
-  const [contactEnquiries, setContactEnquiries] = useState<ContactEnquiryItem[]>(defaultContactEnquiries);
+  const [contactEnquiries, setContactEnquiries] = useState<ContactEnquiryItem[]>([]);
 
   // Extended CMS Collections
   const [heroContent, setHeroContent] = useState<HeroContent>(defaultHeroContent);
@@ -300,11 +300,120 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [seoGlobalConfig, setSeoGlobalConfig] = useState<SeoGlobalConfig>(defaultSeoGlobalConfig);
   const [redirectRules, setRedirectRules] = useState<RedirectRule[]>(defaultRedirectRules);
   const [formBuilderConfig, setFormBuilderConfig] = useState<FormBuilderConfig>(defaultFormBuilderConfig);
-  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(defaultActivityLogs);
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(defaultAdminUsers);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>(null);
 
   const [isLoadingFromCloudflare, setIsLoadingFromCloudflare] = useState(true);
+
+  // FETCH AUTHENTICATED ADMIN DATA FROM D1
+  const fetchAuthenticatedAdminData = useCallback(async (user: AdminUser) => {
+    try {
+      const enqRes = await api.get('/api/admin/enquiries');
+      if (enqRes.ok && enqRes.data?.enquiries) {
+        const rawEnquiries = enqRes.data.enquiries;
+        const apps: AppointmentSubmission[] = [];
+        const contacts: ContactEnquiryItem[] = [];
+
+        for (const row of rawEnquiries) {
+          const type = row.type || 'contact';
+          const statusNorm = (row.status || 'new').toLowerCase();
+          const mappedStatus = 
+            statusNorm === 'replied' ? 'Replied' :
+            statusNorm === 'archived' ? 'Archived' :
+            statusNorm === 'confirmed' ? 'Confirmed' :
+            statusNorm === 'completed' ? 'Completed' :
+            statusNorm === 'cancelled' ? 'Cancelled' :
+            statusNorm === 'in_progress' ? 'In Progress' :
+            statusNorm === 'contacted' ? 'Contacted' : 'New';
+
+          if (type === 'appointment') {
+            apps.push({
+              id: row.id,
+              patientName: row.name,
+              phone: row.phone,
+              email: row.email || '',
+              consultationType: row.message || 'Clinic Consultation',
+              cancerTypeOrConcern: row.cancer_type || 'General Oncology',
+              preferredDate: row.preferred_date || new Date().toISOString().split('T')[0],
+              preferredSlot: row.preferred_time || 'Morning',
+              notes: row.admin_notes || row.message || '',
+              submittedAt: row.created_at || new Date().toISOString(),
+              status: mappedStatus as any
+            });
+          } else {
+            contacts.push({
+              id: row.id,
+              name: row.name,
+              phone: row.phone,
+              email: row.email || '',
+              message: row.message || '',
+              sourcePage: 'Website Contact',
+              submittedDate: row.created_at || new Date().toISOString(),
+              status: mappedStatus as any,
+              notes: row.admin_notes || ''
+            });
+          }
+        }
+        setAppointments(apps);
+        setContactEnquiries(contacts);
+      }
+
+      const soRes = await api.get('/api/admin/second-opinions');
+      if (soRes.ok && soRes.data?.requests) {
+        const rawSo = soRes.data.requests;
+        const mappedSo: SecondOpinionSubmission[] = rawSo.map((r: any) => {
+          const statusNorm = (r.status || 'pending').toLowerCase();
+          const mappedStatus =
+            statusNorm === 'reviewed' ? 'Reviewed' :
+            statusNorm === 'completed' ? 'Completed' :
+            statusNorm === 'archived' ? 'Archived' : 'Pending Review';
+
+          return {
+            id: r.id,
+            name: r.patient_name || r.name,
+            phone: r.phone || '',
+            email: r.email || '',
+            cityCountry: r.city || '',
+            cancerType: r.cancer_type || '',
+            currentDiagnosis: r.stage || '',
+            previousTreatment: r.current_treatment || r.previousTreatment || '',
+            message: r.specific_questions || r.message || '',
+            attachedFiles: (r.files || []).map((f: any) => ({
+              id: f.id,
+              name: f.original_filename || f.name,
+              size: f.file_size || f.size || 0,
+              type: f.mime_type || f.type || 'application/octet-stream',
+              url: f.public_url || f.url || '#'
+            })),
+            submittedAt: r.created_at || new Date().toISOString(),
+            status: mappedStatus as any,
+            notes: r.doctor_notes || r.notes || ''
+          };
+        });
+        setSecondOpinions(mappedSo);
+      }
+
+      if (user.role === 'super_admin') {
+        const usersRes = await api.get('/api/admin/users');
+        if (usersRes.ok && usersRes.data?.users) {
+          const rawUsers = usersRes.data.users;
+          const mappedUsers: AdminUser[] = rawUsers.map((u: any) => ({
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            role: u.role,
+            status: u.status || 'active',
+            lastLogin: u.last_login || u.lastLogin,
+            createdAt: u.created_at ? u.created_at.split('T')[0] : (u.createdAt || new Date().toISOString().split('T')[0])
+          }));
+          setAdminUsers(mappedUsers);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch authenticated admin data:', err);
+    }
+  }, []);
 
   // FETCH ALL DATA FROM CLOUDFLARE D1 WORKER API ON MOUNT & ROUTE CHANGE
   const fetchCloudflareData = useCallback(async () => {
@@ -313,7 +422,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const sessionRes = await api.get('/api/admin/auth/session');
         if (sessionRes.data?.user) {
-          setCurrentAdminUser(sessionRes.data.user);
+          const user = sessionRes.data.user;
+          setCurrentAdminUser(user);
+          await fetchAuthenticatedAdminData(user);
         } else {
           setCurrentAdminUser(null);
         }
@@ -324,7 +435,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.get('/api/public/site');
       if (res.ok && res.data) {
         const data = res.data;
-        if (data.siteSettings) setSiteSettings(data.siteSettings);
+        if (data.siteSettings) {
+          setSiteSettings(data.siteSettings);
+          if (data.siteSettings.seoGlobalConfig) {
+            setSeoGlobalConfig(data.siteSettings.seoGlobalConfig);
+          } else if (data.siteSettings.seo) {
+            setSeoGlobalConfig(data.siteSettings.seo);
+          }
+          if (Array.isArray(data.siteSettings.redirectRules)) {
+            setRedirectRules(data.siteSettings.redirectRules);
+          }
+          if (data.siteSettings.formBuilderConfig) {
+            setFormBuilderConfig(data.siteSettings.formBuilderConfig);
+          }
+        }
         if (data.doctorProfile) {
           setDoctorProfile({
             ...initialDoctorProfile,
@@ -460,6 +584,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data?.user) {
         const user = response.data.user;
         setCurrentAdminUser(user);
+        await fetchAuthenticatedAdminData(user);
         logActivity('LOGIN', 'AUTH', user.id, `Signed in as ${user.role} (${user.email})`);
         return { success: true, user };
       }
@@ -481,6 +606,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logActivity('LOGOUT', 'AUTH', currentAdminUser.id, `Signed out (${currentAdminUser.email})`);
     }
     setCurrentAdminUser(null);
+    setAppointments([]);
+    setSecondOpinions([]);
+    setContactEnquiries([]);
+    setAdminUsers([]);
+    setActivityLogs([]);
   };
 
   const logoutAdmin = () => {
@@ -530,14 +660,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateHeroAnimationSettings = async (settings: Partial<HeroAnimationSettings>) => {
     const updated = { ...heroAnimationSettings, ...settings };
-    await api.put('/api/admin/homepage', { animations: { hero: updated, global: globalAnimationSettings } });
+    await api.put('/api/admin/homepage', { animations: updated });
     setHeroAnimationSettings(updated);
     logActivity('UPDATE', 'ANIMATION', 'hero-anim', 'Hero animations adjusted in D1');
   };
 
   const updateGlobalAnimationSettings = async (settings: Partial<GlobalAnimationSettings>) => {
     const updated = { ...globalAnimationSettings, ...settings };
-    await api.put('/api/admin/homepage', { animations: { hero: heroAnimationSettings, global: updated } });
+    await api.put('/api/admin/homepage', { globalAnimationSettings: updated });
     setGlobalAnimationSettings(updated);
     logActivity('UPDATE', 'ANIMATION', 'global-anim', 'Global animation and marquee updated in D1');
   };
@@ -614,14 +744,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('DELETE', 'CANCER_PAGE', id, 'Deleted cancer page');
   };
 
-  const updateHowCanWeHelp = (items: HowCanWeHelpItem[]) => {
+  const updateHowCanWeHelp = async (items: HowCanWeHelpItem[]) => {
+    await api.put('/api/admin/homepage', { how_can_we_help: items });
     setHowCanWeHelp(items);
-    logActivity('UPDATE', 'HOW_HELP', 'all', 'Updated How Can We Help patient cards');
+    logActivity('UPDATE', 'HOW_HELP', 'all', 'Updated How Can We Help patient cards in D1');
   };
 
-  const updateTreatmentJourney = (steps: JourneyStepItem[]) => {
+  const updateTreatmentJourney = async (steps: JourneyStepItem[]) => {
+    await api.put('/api/admin/homepage', { treatment_journey: steps });
     setTreatmentJourney(steps);
-    logActivity('UPDATE', 'JOURNEY', 'all', 'Updated treatment journey stages');
+    logActivity('UPDATE', 'JOURNEY', 'all', 'Updated treatment journey stages in D1');
   };
 
   const updateTreatment = async (id: string, data: Partial<Treatment>) => {
@@ -824,19 +956,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSeoGlobalConfig = async (seo: Partial<SeoGlobalConfig>) => {
     const updated = { ...seoGlobalConfig, ...seo };
-    await api.put('/api/admin/site-settings', { seo: updated });
+    await api.put('/api/admin/site-settings', { seoGlobalConfig: updated });
     setSeoGlobalConfig(updated);
-    logActivity('UPDATE', 'SEO', 'global', 'Updated global SEO meta and schema properties');
+    logActivity('UPDATE', 'SEO', 'global', 'Updated global SEO meta and schema properties in D1');
   };
 
-  const updateRedirectRules = (rules: RedirectRule[]) => {
+  const updateRedirectRules = async (rules: RedirectRule[]) => {
+    await api.put('/api/admin/site-settings', { redirectRules: rules });
     setRedirectRules(rules);
-    logActivity('UPDATE', 'REDIRECTS', 'all', 'Updated URL 301/302 redirect rules');
+    logActivity('UPDATE', 'REDIRECTS', 'all', 'Updated URL 301/302 redirect rules in D1');
   };
 
-  const updateFormBuilderConfig = (config: Partial<FormBuilderConfig>) => {
-    setFormBuilderConfig(prev => ({ ...prev, ...config }));
-    logActivity('UPDATE', 'FORMS', 'all', 'Updated consultation form fields and notification emails');
+  const updateFormBuilderConfig = async (config: Partial<FormBuilderConfig>) => {
+    const updated = { ...formBuilderConfig, ...config };
+    await api.put('/api/admin/site-settings', { formBuilderConfig: updated });
+    setFormBuilderConfig(updated);
+    logActivity('UPDATE', 'FORMS', 'all', 'Updated consultation form fields and notification emails in D1');
   };
 
   // Submissions
@@ -997,12 +1132,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateAdminUserRole = (id: string, role: AdminRole) => {
+  const updateAdminUserRole = async (id: string, role: AdminRole) => {
+    await api.put(`/api/admin/users/${id}`, { role });
     setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, role } : u)));
     logActivity('USER_ROLE_CHANGED', 'SECURITY', id, `Changed user role to ${role}`);
   };
 
-  const updateAdminUserStatus = (id: string, status: 'active' | 'disabled') => {
+  const updateAdminUserStatus = async (id: string, status: 'active' | 'disabled') => {
+    await api.put(`/api/admin/users/${id}`, { status });
     setAdminUsers(prev => prev.map(u => (u.id === id ? { ...u, status } : u)));
     logActivity('USER_STATUS_CHANGED', 'SECURITY', id, `Changed user status to ${status}`);
   };

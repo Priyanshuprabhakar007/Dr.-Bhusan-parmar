@@ -622,6 +622,45 @@ export default {
           return json({ success: true, message: 'Admin deleted' });
         }
 
+        if (pathname.startsWith('/api/admin/users/') && request.method === 'PUT') {
+          if (!isSuperAdmin) return json({ error: 'Forbidden' }, 403);
+          const targetId = pathname.replace('/api/admin/users/', '');
+          const body = (await request.json().catch(() => ({}))) as any;
+          const { role, status, name } = body;
+
+          if (role && !['super_admin', 'content_manager', 'enquiry_manager'].includes(role)) {
+            return json({ error: 'Invalid role' }, 400);
+          }
+          if (status && !['active', 'disabled'].includes(status)) {
+            return json({ error: 'Invalid status' }, 400);
+          }
+
+          const targetUser = await env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(targetId).first<any>();
+          if (!targetUser) return json({ error: 'User not found' }, 404);
+
+          if (targetId === sessionUser.id && (status === 'disabled' || (role && role !== 'super_admin'))) {
+            return json({ error: 'Cannot disable or demote currently authenticated super admin' }, 400);
+          }
+
+          if (targetUser.role === 'super_admin' && (status === 'disabled' || (role && role !== 'super_admin'))) {
+            const activeSuperAdmins = await env.DB.prepare('SELECT COUNT(*) as cnt FROM admin_users WHERE role = "super_admin" AND status = "active" AND id != ?').bind(targetId).first<any>();
+            if (!activeSuperAdmins || activeSuperAdmins.cnt < 1) {
+              return json({ error: 'Cannot disable or demote the last active super administrator' }, 400);
+            }
+          }
+
+          await env.DB.prepare(
+            `UPDATE admin_users
+             SET role = COALESCE(?, role),
+                 status = COALESCE(?, status),
+                 name = COALESCE(?, name)
+             WHERE id = ?`
+          ).bind(role || null, status || null, name || null, targetId).run();
+
+          const updated = await env.DB.prepare('SELECT id, email, name, role, status, last_login, created_at FROM admin_users WHERE id = ?').bind(targetId).first();
+          return json({ success: true, user: updated });
+        }
+
         if (pathname === '/api/admin/enquiries' && request.method === 'GET') {
           if (!isEnquiryManager) return json({ error: 'Forbidden' }, 403);
           const results = await env.DB.prepare('SELECT * FROM enquiries ORDER BY created_at DESC LIMIT 200').all();
@@ -685,7 +724,13 @@ export default {
           }
           if (request.method === 'PUT') {
             const body = (await request.json().catch(() => ({}))) as any;
-            await env.DB.prepare(
+            const existingDoc = await env.DB.prepare('SELECT id FROM doctor_profile ORDER BY updated_at DESC LIMIT 1').first<any>();
+            let docId = existingDoc?.id;
+            if (!docId) {
+              docId = 'doc-1';
+              await env.DB.prepare('INSERT INTO doctor_profile (id, name, speciality, updated_at) VALUES (?, "Dr. Bhushan Parmar", "Senior Medical Oncologist", CURRENT_TIMESTAMP)').bind(docId).run();
+            }
+            const updateRes = await env.DB.prepare(
               `UPDATE doctor_profile
                SET name = COALESCE(?, name),
                    speciality = COALESCE(?, speciality),
@@ -701,7 +746,7 @@ export default {
                    core_expertise = COALESCE(?, core_expertise),
                    memberships = COALESCE(?, memberships),
                    updated_at = CURRENT_TIMESTAMP
-               WHERE id = 'dr-bhushan-parmar'`
+               WHERE id = ?`
             ).bind(
               body.name || null,
               body.speciality || null,
@@ -715,9 +760,17 @@ export default {
               body.photoUrl || body.photo_url || null,
               body.qualifications ? JSON.stringify(body.qualifications) : null,
               body.coreExpertise ? JSON.stringify(body.coreExpertise) : null,
-              body.memberships ? JSON.stringify(body.memberships) : null
+              body.memberships ? JSON.stringify(body.memberships) : null,
+              docId
             ).run();
-            const updated = await env.DB.prepare('SELECT * FROM doctor_profile LIMIT 1').first();
+
+            if (!updateRes.success) {
+              return json({ error: 'Failed to update doctor profile persistence' }, 500);
+            }
+            const updated = await env.DB.prepare('SELECT * FROM doctor_profile WHERE id = ?').bind(docId).first();
+            if (!updated) {
+              return json({ error: 'Doctor profile not found after update' }, 404);
+            }
             return json({ success: true, doctorProfile: updated });
           }
         }

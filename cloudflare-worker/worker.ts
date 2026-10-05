@@ -238,6 +238,17 @@ export default {
       });
     };
 
+    if (
+      pathname.startsWith('/api/admin/') &&
+      requestOrigin &&
+      !isAllowedOrigin
+    ) {
+      return json(
+        { error: 'Origin not allowed' },
+        403
+      );
+    }
+
     try {
       if (pathname === '/api/health') {
         return json({

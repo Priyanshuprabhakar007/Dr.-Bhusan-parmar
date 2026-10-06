@@ -67,39 +67,59 @@ export const HomepageEditor: React.FC = () => {
     setFinalCtaForm(prev => ({ ...prev, [field]: val }));
   };
 
-  const handleSaveHero = (e: React.FormEvent) => {
+  const handleSaveHero = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateHeroContent(heroForm);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateHeroContent(heroForm);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save Hero content. Please check connection and try again.');
+    }
   };
 
-  const handleSaveAbout = (e: React.FormEvent) => {
+  const handleSaveAbout = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateAboutDoctorContent(aboutForm);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateAboutDoctorContent(aboutForm);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save About section. Please check connection and try again.');
+    }
   };
 
-  const handleSaveSecondOpinion = (e: React.FormEvent) => {
+  const handleSaveSecondOpinion = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSecondOpinionContent(secondOpinionForm);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateSecondOpinionContent(secondOpinionForm);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save Second Opinion section. Please check connection and try again.');
+    }
   };
 
-  const handleSaveFinalCta = (e: React.FormEvent) => {
+  const handleSaveFinalCta = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateFinalCtaContent(finalCtaForm);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateFinalCtaContent(finalCtaForm);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save Final CTA section. Please check connection and try again.');
+    }
   };
 
-  const handleSaveAnimations = (e: React.FormEvent) => {
+  const handleSaveAnimations = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateHeroAnimationSettings(animForm);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateHeroAnimationSettings(animForm);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save Hero animation settings. Please check connection and try again.');
+    }
   };
 
   // Section visibility and reordering

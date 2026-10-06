@@ -39,11 +39,15 @@ export const AnimationMarqueeEditor: React.FC = () => {
     pauseOnHover: true
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateGlobalAnimationSettings(form);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateGlobalAnimationSettings(form);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save animation settings. Please check connection and try again.');
+    }
   };
 
   const handleAddPhrase = () => {

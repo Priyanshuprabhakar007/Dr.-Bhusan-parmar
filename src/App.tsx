@@ -26,8 +26,29 @@ import { SecondOpinionDrawer } from './components/SecondOpinionDrawer';
 import { DesktopFloatingControls } from './components/DesktopFloatingControls';
 import { MobileBottomBar } from './components/MobileBottomBar';
 
+const SectionRenderer = ({ section }: { section: any }) => {
+  switch (section.id) {
+    case 'sec-hero': return <Hero />;
+    case 'sec-marquee': return <EditorialMarquee />;
+    case 'sec-intro': return <IntroSection />;
+    case 'sec-about': return <AboutSection />;
+    case 'sec-how-help': return <HowCanWeHelp />;
+    case 'sec-cancers': return <CancersSection />;
+    case 'sec-body-explorer': return <BodyAreaExplorer />;
+    case 'sec-treatments': return <TreatmentsSection />;
+    case 'sec-typography': return <OversizedScrollTypography phrase="Precision Oncology." tagline="Dedicated to individualized biomarker profiling and targeted cancer care" />;
+    case 'sec-journey': return <JourneySection />;
+    case 'sec-second-opinion': return <SecondOpinionSection />;
+    case 'sec-blog': return <><BlogSection /><LatestInsights /></>;
+    case 'sec-faqs': return <FAQSection />;
+    case 'sec-final-cta': return <FinalCtaSection />;
+    default: return null;
+  }
+};
+
 const HomePage = () => {
   const location = useLocation();
+  const { homepageSections } = useData();
 
   useEffect(() => {
     const path = location.pathname;
@@ -54,21 +75,10 @@ const HomePage = () => {
 
   return (
     <>
-      <Hero />
-      <EditorialMarquee />
-      <IntroSection />
-      <AboutSection />
-      <HowCanWeHelp />
-      <CancersSection />
-      <BodyAreaExplorer />
-      <TreatmentsSection />
-      <OversizedScrollTypography phrase="Precision Oncology." tagline="Dedicated to individualized biomarker profiling and targeted cancer care" />
-      <JourneySection />
-      <SecondOpinionSection />
-      <BlogSection />
-      <LatestInsights />
-      <FAQSection />
-      <FinalCtaSection />
+      {homepageSections
+        .filter((s: any) => s.visible !== false)
+        .sort((a: any, b: any) => a.order - b.order)
+        .map((s: any) => <SectionRenderer key={s.id} section={s} />)}
     </>
   );
 };
@@ -97,9 +107,11 @@ function AppRoutes() {
 
 const PublicFloatingActions: React.FC = () => {
   const location = useLocation();
+  const { siteSettings } = useData();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isMaintenance = siteSettings?.maintenanceMode === true;
 
-  if (isAdminRoute) return null;
+  if (isAdminRoute || isMaintenance) return null;
 
   return (
     <>

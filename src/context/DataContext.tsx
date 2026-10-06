@@ -159,12 +159,12 @@ interface DataContextType {
   // CMS Updaters
   updateDoctorProfile: (profile: Partial<DoctorProfile>) => Promise<boolean>;
   updatePracticeLocation: (loc: Partial<PracticeLocation>) => void;
-  updateHeroContent: (content: Partial<HeroContent>) => void;
-  updateAboutDoctorContent: (content: Partial<AboutDoctorSectionContent>) => void;
-  updateSecondOpinionContent: (content: Partial<SecondOpinionSectionContent>) => void;
-  updateFinalCtaContent: (content: Partial<FinalCtaSectionContent>) => void;
-  updateHeroAnimationSettings: (settings: Partial<HeroAnimationSettings>) => void;
-  updateGlobalAnimationSettings: (settings: Partial<GlobalAnimationSettings>) => void;
+  updateHeroContent: (content: Partial<HeroContent>) => Promise<boolean>;
+  updateAboutDoctorContent: (content: Partial<AboutDoctorSectionContent>) => Promise<boolean>;
+  updateSecondOpinionContent: (content: Partial<SecondOpinionSectionContent>) => Promise<boolean>;
+  updateFinalCtaContent: (content: Partial<FinalCtaSectionContent>) => Promise<boolean>;
+  updateHeroAnimationSettings: (settings: Partial<HeroAnimationSettings>) => Promise<boolean>;
+  updateGlobalAnimationSettings: (settings: Partial<GlobalAnimationSettings>) => Promise<boolean>;
   updateHomepageSections: (sections: HomepageSectionConfig[]) => Promise<boolean>;
   updateLocations: (locations: LocationItem[]) => void;
   addLocation: (location: LocationItem) => void;
@@ -175,8 +175,8 @@ interface DataContextType {
   updateCancerPage: (id: string, page: Partial<CancerPageRecord>) => void;
   addCancerPage: (page: CancerPageRecord) => void;
   deleteCancerPage: (id: string) => void;
-  updateHowCanWeHelp: (items: HowCanWeHelpItem[]) => void;
-  updateTreatmentJourney: (steps: JourneyStepItem[]) => void;
+  updateHowCanWeHelp: (items: HowCanWeHelpItem[]) => Promise<boolean>;
+  updateTreatmentJourney: (steps: JourneyStepItem[]) => Promise<boolean>;
   updateTreatment: (id: string, data: Partial<Treatment>) => void;
   addTreatment: (treatment: Treatment) => void;
   deleteTreatment: (id: string) => void;
@@ -659,46 +659,82 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('UPDATE', 'LOCATION', 'primary-loc', 'Primary practice location updated');
   };
 
-  const updateHeroContent = async (content: Partial<HeroContent>) => {
-    const updatedHero = { ...heroContent, ...content };
-    await api.put('/api/admin/homepage', { hero: updatedHero });
-    setHeroContent(updatedHero);
-    logActivity('UPDATE', 'HERO', 'sec-hero', 'Hero headlines, CTA or credentials updated in D1');
+  const updateHeroContent = async (content: Partial<HeroContent>): Promise<boolean> => {
+    try {
+      const updatedHero = { ...heroContent, ...content };
+      await api.put('/api/admin/homepage', { hero: updatedHero });
+      setHeroContent(updatedHero);
+      logActivity('UPDATE', 'HERO', 'sec-hero', 'Hero headlines, CTA or credentials updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update hero content', error);
+      return false;
+    }
   };
 
-  const updateAboutDoctorContent = async (content: Partial<AboutDoctorSectionContent>) => {
-    const updatedAbout = { ...aboutDoctorContent, ...content };
-    await api.put('/api/admin/homepage', { about: updatedAbout });
-    setAboutDoctorContent(updatedAbout);
-    logActivity('UPDATE', 'ABOUT_DOCTOR', 'sec-about', 'About doctor section content / photo updated in D1');
+  const updateAboutDoctorContent = async (content: Partial<AboutDoctorSectionContent>): Promise<boolean> => {
+    try {
+      const updatedAbout = { ...aboutDoctorContent, ...content };
+      await api.put('/api/admin/homepage', { about: updatedAbout });
+      setAboutDoctorContent(updatedAbout);
+      logActivity('UPDATE', 'ABOUT_DOCTOR', 'sec-about', 'About doctor section content / photo updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update about doctor content', error);
+      return false;
+    }
   };
 
-  const updateSecondOpinionContent = async (content: Partial<SecondOpinionSectionContent>) => {
-    const updatedSec = { ...secondOpinionContent, ...content };
-    await api.put('/api/admin/homepage', { second_opinion: updatedSec });
-    setSecondOpinionContent(updatedSec);
-    logActivity('UPDATE', 'SECOND_OPINION', 'sec-second-opinion', 'Second opinion section content / photo updated in D1');
+  const updateSecondOpinionContent = async (content: Partial<SecondOpinionSectionContent>): Promise<boolean> => {
+    try {
+      const updatedSec = { ...secondOpinionContent, ...content };
+      await api.put('/api/admin/homepage', { second_opinion: updatedSec });
+      setSecondOpinionContent(updatedSec);
+      logActivity('UPDATE', 'SECOND_OPINION', 'sec-second-opinion', 'Second opinion section content / photo updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update second opinion content', error);
+      return false;
+    }
   };
 
-  const updateFinalCtaContent = async (content: Partial<FinalCtaSectionContent>) => {
-    const updatedCta = { ...finalCtaContent, ...content };
-    await api.put('/api/admin/homepage', { final_cta: updatedCta });
-    setFinalCtaContent(updatedCta);
-    logActivity('UPDATE', 'FINAL_CTA', 'sec-final-cta', 'Final Consultation CTA section content / doctor image updated in D1');
+  const updateFinalCtaContent = async (content: Partial<FinalCtaSectionContent>): Promise<boolean> => {
+    try {
+      const updatedCta = { ...finalCtaContent, ...content };
+      await api.put('/api/admin/homepage', { final_cta: updatedCta });
+      setFinalCtaContent(updatedCta);
+      logActivity('UPDATE', 'FINAL_CTA', 'sec-final-cta', 'Final Consultation CTA section content / doctor image updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update final cta content', error);
+      return false;
+    }
   };
 
-  const updateHeroAnimationSettings = async (settings: Partial<HeroAnimationSettings>) => {
-    const updated = { ...heroAnimationSettings, ...settings };
-    await api.put('/api/admin/homepage', { animations: updated });
-    setHeroAnimationSettings(updated);
-    logActivity('UPDATE', 'ANIMATION', 'hero-anim', 'Hero animations adjusted in D1');
+  const updateHeroAnimationSettings = async (settings: Partial<HeroAnimationSettings>): Promise<boolean> => {
+    try {
+      const updated = { ...heroAnimationSettings, ...settings };
+      await api.put('/api/admin/homepage', { animations: updated });
+      setHeroAnimationSettings(updated);
+      logActivity('UPDATE', 'ANIMATION', 'hero-anim', 'Hero animations adjusted in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update hero animation settings', error);
+      return false;
+    }
   };
 
-  const updateGlobalAnimationSettings = async (settings: Partial<GlobalAnimationSettings>) => {
-    const updated = { ...globalAnimationSettings, ...settings };
-    await api.put('/api/admin/homepage', { globalAnimationSettings: updated });
-    setGlobalAnimationSettings(updated);
-    logActivity('UPDATE', 'ANIMATION', 'global-anim', 'Global animation and marquee updated in D1');
+  const updateGlobalAnimationSettings = async (settings: Partial<GlobalAnimationSettings>): Promise<boolean> => {
+    try {
+      const updated = { ...globalAnimationSettings, ...settings };
+      await api.put('/api/admin/homepage', { globalAnimationSettings: updated });
+      setGlobalAnimationSettings(updated);
+      logActivity('UPDATE', 'ANIMATION', 'global-anim', 'Global animation and marquee updated in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update global animation settings', error);
+      return false;
+    }
   };
 
   const updateHomepageSections = async (sections: HomepageSectionConfig[]): Promise<boolean> => {
@@ -779,16 +815,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('DELETE', 'CANCER_PAGE', id, 'Deleted cancer page');
   };
 
-  const updateHowCanWeHelp = async (items: HowCanWeHelpItem[]) => {
-    await api.put('/api/admin/homepage', { how_can_we_help: items });
-    setHowCanWeHelp(items);
-    logActivity('UPDATE', 'HOW_HELP', 'all', 'Updated How Can We Help patient cards in D1');
+  const updateHowCanWeHelp = async (items: HowCanWeHelpItem[]): Promise<boolean> => {
+    try {
+      await api.put('/api/admin/homepage', { how_can_we_help: items });
+      setHowCanWeHelp(items);
+      logActivity('UPDATE', 'HOW_HELP', 'all', 'Updated How Can We Help patient cards in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update how can we help cards', error);
+      return false;
+    }
   };
 
-  const updateTreatmentJourney = async (steps: JourneyStepItem[]) => {
-    await api.put('/api/admin/homepage', { treatment_journey: steps });
-    setTreatmentJourney(steps);
-    logActivity('UPDATE', 'JOURNEY', 'all', 'Updated treatment journey stages in D1');
+  const updateTreatmentJourney = async (steps: JourneyStepItem[]): Promise<boolean> => {
+    try {
+      await api.put('/api/admin/homepage', { treatment_journey: steps });
+      setTreatmentJourney(steps);
+      logActivity('UPDATE', 'JOURNEY', 'all', 'Updated treatment journey stages in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update treatment journey', error);
+      return false;
+    }
   };
 
   const updateTreatment = async (id: string, data: Partial<Treatment>) => {

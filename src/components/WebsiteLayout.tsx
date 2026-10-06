@@ -58,9 +58,9 @@ export const WebsiteLayout: React.FC = () => {
           {Boolean(logoUrl.trim()) && (
             <img src={logoUrl.trim()} alt={doctorProfile?.name || 'Doctor'} className="h-12 w-auto mx-auto object-contain" />
           )}
-          <h1 className="text-2xl font-bold font-heading">{doctorProfile?.name || 'Dr. Bhushan Parmar'}</h1>
+          <h1 className="text-2xl font-bold font-heading">Maintenance</h1>
           <p className="text-sm text-slate-300 leading-relaxed">
-            {siteSettings.maintenanceMessage || 'Our practice website is currently undergoing scheduled maintenance and updates. Please check back shortly or contact our clinic directly for urgent inquiries.'}
+            {siteSettings.maintenanceMessage || ''}
           </p>
         </div>
       </div>

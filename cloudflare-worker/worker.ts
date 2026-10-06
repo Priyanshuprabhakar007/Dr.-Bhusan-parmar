@@ -180,6 +180,55 @@ function isRateLimited(ip: string, maxHits = 30, windowMs = 600000): boolean {
   return false;
 }
 
+function normalizeHomepageSection(row: any) {
+  return {
+    id: row.id || row.section_key || '',
+    name: row.title || row.section_key || '',
+    visible: Boolean(row.is_visible),
+    order: Number(row.display_order || 0),
+    customTitle: row.title || '',
+    customSubtitle: row.subtitle || ''
+  };
+}
+
+function normalizeNavigationItem(row: any) {
+  return {
+    id: row.id,
+    label: row.label || '',
+    url: row.url || '',
+    order: Number(row.display_order || 0),
+    isVisible: Boolean(row.is_visible),
+    isExternal: Boolean(row.is_external),
+    openInNewTab: Boolean(row.open_in_new_tab)
+  };
+}
+
+function safeJsonParse(value: any, fallback: any) {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeFooterRow(row: any) {
+  if (!row) return {};
+  return {
+    doctorDescription: row.about_text || '',
+    phone: row.phone || '',
+    whatsapp: row.whatsapp || '',
+    email: row.email || '',
+    address: row.address || '',
+    copyright: row.copyright_text || '',
+    medicalDisclaimer: row.medical_disclaimer || '',
+    privacyPolicyLink: row.privacy_policy_link || '',
+    socialLinks: safeJsonParse(row.social_links, {}),
+    footerCta: safeJsonParse(row.footer_cta, {})
+  };
+}
+
 function normalizeMediaSlot(row: any) {
   if (!row) return null;
   return {
@@ -383,8 +432,8 @@ export default {
           env.DB.prepare('SELECT * FROM faqs WHERE is_published = 1 ORDER BY display_order ASC').all(),
           env.DB.prepare('SELECT * FROM testimonials WHERE is_published = 1 ORDER BY date DESC').all(),
           env.DB.prepare('SELECT * FROM media_slots').all(),
-          env.DB.prepare('SELECT * FROM navigation_items WHERE is_visible = 1 ORDER BY display_order ASC').all(),
-          env.DB.prepare('SELECT * FROM footer_config LIMIT 1').first()
+          env.DB.prepare('SELECT * FROM navigation_items ORDER BY display_order ASC').all(),
+          env.DB.prepare('SELECT * FROM footer_config ORDER BY updated_at DESC LIMIT 1').first()
         ]);
 
         const siteSettings: Record<string, any> = {};
@@ -436,6 +485,10 @@ export default {
         const howCanWeHelp = siteSettings['homepage_how_can_we_help'] || [];
         const treatmentJourney = siteSettings['homepage_treatment_journey'] || [];
 
+        const normalizedHomepageSections = (sectionsRes.results || []).map(normalizeHomepageSection).sort((a, b) => a.order - b.order);
+        const normalizedNavigation = (navRes.results || []).map(normalizeNavigationItem).sort((a, b) => a.order - b.order);
+        const normalizedFooter = normalizeFooterRow(footerRes);
+
         return json({
           success: true,
           isPreview: isPreviewRequest,
@@ -449,7 +502,7 @@ export default {
           globalAnimationSettings,
           howCanWeHelp,
           treatmentJourney,
-          homepageSections: sectionsRes.results || [],
+          homepageSections: normalizedHomepageSections,
           cancers: cancerCareRes.results || [],
           cancerCategories: categoriesRes.results || [],
           treatments: treatmentsRes.results || [],
@@ -458,8 +511,8 @@ export default {
           blogPosts: blogsRes.results || [],
           faqs: faqsRes.results || [],
           testimonials: testimonialsRes.results || [],
-          navigationMenu: navRes.results || [],
-          footerConfig: footerRes || {},
+          navigationMenu: normalizedNavigation,
+          footerConfig: normalizedFooter,
           mediaSlots
         });
       }
@@ -718,7 +771,7 @@ export default {
           let dbStatus = body.status;
           if (dbStatus) {
             const lower = dbStatus.toLowerCase();
-            if (['new', 'pending', 'pending_review', 'under_review'].includes(lower)) dbStatus = 'new';
+            if (['new', 'pending', 'pending review', 'pending_review', 'under_review'].includes(lower)) dbStatus = 'new';
             else if (lower === 'contacted') dbStatus = 'contacted';
             else if (['reviewed', 'report_ready', 'completed'].includes(lower)) dbStatus = 'reviewed';
             else return json({ error: "Invalid second opinion status" }, 400);
@@ -827,7 +880,7 @@ export default {
             for (const row of settingsRes.results || []) {
               try { homepageData[row.key.replace('homepage_', '')] = JSON.parse(row.value); } catch { homepageData[row.key.replace('homepage_', '')] = row.value; }
             }
-            homepageData.sections = sectionsRes.results || [];
+            homepageData.sections = (sectionsRes.results || []).map(normalizeHomepageSection).sort((a, b) => a.order - b.order);
             return json({ success: true, ...homepageData });
           }
           if (request.method === 'PUT') {
@@ -857,6 +910,8 @@ export default {
 
             if (Array.isArray(sections)) {
               for (const sec of sections) {
+                const title = sec.customTitle ?? sec.title ?? null;
+                const subtitle = sec.customSubtitle ?? sec.subtitle ?? null;
                 await env.DB.prepare(
                   `UPDATE homepage_sections
                    SET is_visible = ?, display_order = ?, title = COALESCE(?, title), subtitle = COALESCE(?, subtitle), content = COALESCE(?, content), updated_at = CURRENT_TIMESTAMP
@@ -864,8 +919,8 @@ export default {
                 ).bind(
                   sec.visible !== false && sec.is_visible !== false ? 1 : 0,
                   sec.order || sec.display_order || 0,
-                  sec.title || null,
-                  sec.subtitle || null,
+                  title,
+                  subtitle,
                   sec.content ? JSON.stringify(sec.content) : null,
                   sec.id || '',
                   sec.key || sec.section_key || ''
@@ -1295,7 +1350,8 @@ export default {
         if (pathname === '/api/admin/navigation') {
           if (request.method === 'GET') {
             const nav = await env.DB.prepare('SELECT * FROM navigation_items ORDER BY display_order ASC').all();
-            return json({ success: true, navigation: nav.results });
+            const navigation = (nav.results || []).map(normalizeNavigationItem).sort((a, b) => a.order - b.order);
+            return json({ success: true, navigation });
           }
           if (request.method === 'PUT') {
             const body = (await request.json().catch(() => ({}))) as any;
@@ -1321,8 +1377,8 @@ export default {
         // FOOTER
         if (pathname === '/api/admin/footer') {
           if (request.method === 'GET') {
-            const footer = await env.DB.prepare('SELECT * FROM footer_config LIMIT 1').first();
-            return json({ success: true, footer });
+            const footer = await env.DB.prepare('SELECT * FROM footer_config ORDER BY updated_at DESC LIMIT 1').first();
+            return json({ success: true, footer: normalizeFooterRow(footer) });
           }
           if (request.method === 'PUT') {
             const body = (await request.json().catch(() => ({}))) as any;

@@ -72,12 +72,8 @@ export const Footer: React.FC = () => {
               </p>
             </div>
             <p className="text-sm text-stone-300 leading-relaxed font-normal max-w-sm">
-              {footerConfig?.doctorDescription || 'Evidence-based medical oncology care for solid tumors and hematological cancers, prioritizing genomic precision, patient clarity, and compassionate treatment planning.'}
+              {footerConfig?.doctorDescription || ''}
             </p>
-            <div className="pt-2 flex items-center space-x-2 text-xs text-stone-400">
-              <ShieldCheck className="w-4 h-4 text-[#18B8B4]" />
-              <span>DrNB • PGIMER • MD • 10+ Years Oncology</span>
-            </div>
           </div>
 
           {/* Col 2: Quick Links (3 cols) */}
@@ -121,14 +117,6 @@ export const Footer: React.FC = () => {
                 >
                   Book Consultation
                 </button>
-              </li>
-              <li>
-                <a
-                  href="/admin"
-                  className="text-stone-400 hover:text-stone-200 text-xs transition-colors"
-                >
-                  Admin Portal
-                </a>
               </li>
             </ul>
           </div>

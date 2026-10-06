@@ -8,12 +8,15 @@ import { getMediaUrl } from '../lib/cloudflareMedia';
 interface NavLinkItem {
   id: string;
   label: string;
-  path: string;
-  sectionId: string;
+  url: string;
+  order: number;
+  isVisible: boolean;
+  isExternal: boolean;
+  openInNewTab: boolean;
 }
 
 export const Navbar: React.FC = () => {
-  const { doctorProfile, practiceLocation, siteSettings, mediaAssets, getSlotMediaUrl, openAppointmentModal } = useData();
+  const { doctorProfile, practiceLocation, siteSettings, navigationMenu, mediaAssets, getSlotMediaUrl, openAppointmentModal } = useData();
   const logoSrc = getSlotMediaUrl('slot-branding-logo', getMediaUrl(siteSettings.logoUrl, mediaAssets) || siteSettings.logoUrl);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('home');
@@ -28,27 +31,15 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navLinks: NavLinkItem[] = [
-    { id: 'home', label: 'Home', path: '/', sectionId: 'home' },
-    { id: 'about', label: 'About', path: '/about', sectionId: 'about' },
-    { id: 'cancers', label: 'Cancer Care', path: '/cancer-care', sectionId: 'cancers' },
-    { id: 'treatments', label: 'Treatments', path: '/treatments', sectionId: 'treatments' },
-    { id: 'second-opinion', label: 'Second Opinion', path: '/second-opinion', sectionId: 'second-opinion' },
-    { id: 'blogs', label: 'Blogs', path: '/blogs', sectionId: 'blogs' },
-    { id: 'resources', label: 'Resources', path: '/resources', sectionId: 'resources' },
-    { id: 'contact', label: 'Contact', path: '/contact', sectionId: 'contact' }
-  ];
+  const navLinks = (Array.isArray(navigationMenu) ? navigationMenu : [])
+    .filter(item => item.isVisible !== false)
+    .sort((a, b) => a.order - b.order);
 
   // Helper to determine active nav from pathname
   const getNavFromPathname = (pathname: string): string => {
-    if (pathname === '/blogs' || pathname.startsWith('/blogs/')) return 'blogs';
-    if (pathname === '/contact' || pathname.startsWith('/contact/')) return 'contact';
-    if (pathname === '/cancer-care' || pathname.startsWith('/cancer-care/')) return 'cancers';
-    if (pathname === '/treatments' || pathname.startsWith('/treatments/')) return 'treatments';
-    if (pathname.startsWith('/second-opinion')) return 'second-opinion';
-    if (pathname.startsWith('/resources')) return 'resources';
-    if (pathname.startsWith('/about')) return 'about';
-    return 'home';
+    // Basic mapping based on URL. For exact mapping, one might use the navigationMenu data.
+    const match = navLinks.find(link => link.url !== '/' && pathname.startsWith(link.url));
+    return match ? match.id : 'home';
   };
 
   // Sync activeNav with location pathname when on subpages
@@ -80,7 +71,7 @@ export const Navbar: React.FC = () => {
   // Re-measure position whenever activeNav or pathname changes
   useLayoutEffect(() => {
     updateCapsulePosition(activeNav);
-  }, [activeNav, location.pathname]);
+  }, [activeNav, location.pathname, navLinks]);
 
   useEffect(() => {
     const handleResize = () => updateCapsulePosition(activeNav);
@@ -100,13 +91,13 @@ export const Navbar: React.FC = () => {
       window.removeEventListener('resize', handleResize);
       if (observer) observer.disconnect();
     };
-  }, [activeNav, location.pathname]);
+  }, [activeNav, location.pathname, navLinks]);
 
   // IntersectionObserver for scroll spy on home page
   useEffect(() => {
     if (location.pathname !== '/') return;
 
-    const sections = ['home', 'about', 'cancers', 'treatments', 'second-opinion', 'blogs', 'resources', 'contact'];
+    const sections = navLinks.map(l => l.url.startsWith('#') ? l.url.substring(1) : l.url).filter(Boolean);
     const elements = sections.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
 
     if (elements.length === 0) return;
@@ -121,7 +112,10 @@ export const Navbar: React.FC = () => {
 
         if (visible[0]) {
           const sectionId = visible[0].target.id;
-          setActiveNav(prev => (prev !== sectionId ? sectionId : prev));
+          const link = navLinks.find(l => l.url === `#${sectionId}`);
+          if (link) {
+            setActiveNav(prev => (prev !== link.id ? link.id : prev));
+          }
         }
       },
       {
@@ -132,9 +126,9 @@ export const Navbar: React.FC = () => {
 
     elements.forEach(el => observer.observe(el));
     return () => observer.disconnect();
-  }, [location.pathname]);
+  }, [location.pathname, navLinks]);
 
-  const handleNavClick = (link: NavLinkItem) => {
+  const handleNavClick = (link: any) => {
     setMobileMenuOpen(false);
     setActiveNav(link.id);
 
@@ -144,38 +138,35 @@ export const Navbar: React.FC = () => {
       isClickScrollingRef.current = false;
     }, 900);
 
-    // Dedicated subpages
-    if (link.id === 'blogs') {
-      if (location.pathname !== '/blogs') {
-        navigate('/blogs');
+    if (link.isExternal) {
+        window.open(link.url, link.openInNewTab ? '_blank' : '_self');
+        return;
+    }
+
+    if (link.url.startsWith('/')) {
+      if (location.pathname !== link.url) {
+        navigate(link.url);
       } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
       return;
     }
 
-    if (link.id === 'contact') {
-      if (location.pathname !== '/contact') {
-        navigate('/contact');
+    if (link.url.startsWith('#')) {
+      const sectionId = link.url.substring(1);
+      if (location.pathname === '/') {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const headerEl = document.querySelector('header');
+          const headerHeight = headerEl ? headerEl.offsetHeight : 90;
+          const y = el.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigate('/', { state: { scrollTo: sectionId } });
       }
-      return;
-    }
-
-    // Section links on Home page or cross-page navigation
-    if (location.pathname === '/') {
-      const el = document.getElementById(link.sectionId);
-      if (el) {
-        const headerEl = document.querySelector('header');
-        const headerHeight = headerEl ? headerEl.offsetHeight : 90;
-        const y = el.getBoundingClientRect().top + window.pageYOffset - headerHeight;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else {
-      navigate('/', { state: { scrollTo: link.sectionId } });
     }
   };
 

@@ -1302,15 +1302,17 @@ export default {
             const items = Array.isArray(body) ? body : (body.navigation || []);
             for (const item of items) {
               await env.DB.prepare(
-                `INSERT INTO navigation_items (id, label, url, display_order, is_visible, updated_at)
-                 VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                `INSERT INTO navigation_items (id, label, url, display_order, is_visible, is_external, open_in_new_tab, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                  ON CONFLICT(id) DO UPDATE SET
                    label = excluded.label,
                    url = excluded.url,
                    display_order = excluded.display_order,
                    is_visible = excluded.is_visible,
+                   is_external = excluded.is_external,
+                   open_in_new_tab = excluded.open_in_new_tab,
                    updated_at = CURRENT_TIMESTAMP`
-              ).bind(item.id, item.label, item.url, item.order || item.display_order || 0, item.isVisible !== false ? 1 : 0).run();
+              ).bind(item.id, item.label, item.url, item.order || item.display_order || 0, item.isVisible !== false ? 1 : 0, item.isExternal ? 1 : 0, item.openInNewTab ? 1 : 0).run();
             }
             return json({ success: true, message: 'Navigation updated' });
           }
@@ -1324,16 +1326,37 @@ export default {
           }
           if (request.method === 'PUT') {
             const body = (await request.json().catch(() => ({}))) as any;
+            const existing = await env.DB.prepare('SELECT id FROM footer_config ORDER BY updated_at DESC LIMIT 1').first<any>();
+            const id = existing?.id || 'foot-1';
+            
             await env.DB.prepare(
-              `INSERT INTO footer_config (id, about_text, emergency_notice, copyright_text, social_links, updated_at)
-               VALUES ('primary-footer', ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              `INSERT INTO footer_config (id, about_text, phone, whatsapp, email, address, copyright_text, medical_disclaimer, privacy_policy_link, social_links, footer_cta, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                ON CONFLICT(id) DO UPDATE SET
                  about_text = excluded.about_text,
-                 emergency_notice = excluded.emergency_notice,
+                 phone = excluded.phone,
+                 whatsapp = excluded.whatsapp,
+                 email = excluded.email,
+                 address = excluded.address,
                  copyright_text = excluded.copyright_text,
+                 medical_disclaimer = excluded.medical_disclaimer,
+                 privacy_policy_link = excluded.privacy_policy_link,
                  social_links = excluded.social_links,
+                 footer_cta = excluded.footer_cta,
                  updated_at = CURRENT_TIMESTAMP`
-            ).bind(body.doctorDescription || body.about_text || '', body.emergencyNotice || body.emergency_notice || '', body.copyright || body.copyright_text || '', JSON.stringify(body.socialLinks || {})).run();
+            ).bind(
+              id,
+              body.doctorDescription || '',
+              body.phone || '',
+              body.whatsapp || '',
+              body.email || '',
+              body.address || '',
+              body.copyright || '',
+              body.medicalDisclaimer || '',
+              body.privacyPolicyLink || '',
+              JSON.stringify(body.socialLinks || {}),
+              JSON.stringify(body.footerCta || {})
+            ).run();
             return json({ success: true, message: 'Footer updated' });
           }
         }

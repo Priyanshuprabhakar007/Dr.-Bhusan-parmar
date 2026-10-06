@@ -385,10 +385,14 @@ export const SecondOpinionsManager: React.FC = () => {
             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (confirm('Delete this second opinion dossier?')) {
-                    deleteSecondOpinion(selectedLead.id);
-                    setSelectedLead(null);
+                    const success = await deleteSecondOpinion(selectedLead.id);
+                    if (success) {
+                      setSelectedLead(null);
+                    } else {
+                      setOperationError('Failed to delete dossier. Please try again.');
+                    }
                   }
                 }}
                 className="text-xs text-rose-600 hover:text-rose-800 flex items-center space-x-1"

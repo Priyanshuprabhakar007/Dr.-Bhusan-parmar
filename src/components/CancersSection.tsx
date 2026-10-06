@@ -3,7 +3,6 @@ import { ArrowRight, ChevronRight, X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, useInView } from 'motion/react';
 import { MaskedHeading, EDITORIAL_EASE } from './MotionUtils';
-import { BodyAreaExplorer } from './BodyAreaExplorer';
 import { CmsImage } from './common/CmsImage';
 import { getMediaUrl } from '../lib/cloudflareMedia';
 
@@ -123,7 +122,6 @@ export const CancersSection: React.FC = () => {
         </div>
 
         {/* BODY EXPLORER: Premium Full-Body Medical Anatomy & Interactive Navigation */}
-        <BodyAreaExplorer />
 
       </div>
 

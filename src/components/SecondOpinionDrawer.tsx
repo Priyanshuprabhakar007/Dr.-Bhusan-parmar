@@ -1,23 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { UploadedFileMeta } from '../types';
 import { validateMedicalDocument } from '../utils/security';
-import { api, apiUrl } from '../lib/api';
+import { apiUrl } from '../lib/api';
+import { getFieldConfig, validateFormFields } from '../utils/formBuilder';
 import {
   X,
   ShieldCheck,
   Lock,
   Upload,
   FileText,
-  FileCheck,
-  FileSpreadsheet,
-  FileImage,
-  Layers,
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Calendar,
-  Phone,
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,11 +28,26 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
   onClose: propsOnClose,
   defaultCancerType = ''
 }) => {
-  const { isSecondOpinionModalOpen, closeSecondOpinionModal, submitSecondOpinion, practiceLocation } = useData();
+  const { isSecondOpinionModalOpen, closeSecondOpinionModal, submitSecondOpinion, practiceLocation, formBuilderConfig } = useData();
   const isOpen = propsIsOpen ?? isSecondOpinionModalOpen;
   const onClose = propsOnClose ?? closeSecondOpinionModal;
 
   const [headerHeight, setHeaderHeight] = useState(70);
+  const [requestId, setRequestId] = useState<string>(() => crypto.randomUUID());
+
+  const secondOpinionConfig = formBuilderConfig?.secondOpinionForm;
+  const fields = secondOpinionConfig?.fields;
+
+  const fieldRules = useMemo(() => ({
+    name: getFieldConfig(fields, 'name', { label: 'Full Name', placeholder: "Patient's full name", required: true }),
+    phone: getFieldConfig(fields, 'phone', { label: 'Phone Number', placeholder: '+91 Mobile number', required: true }),
+    email: getFieldConfig(fields, 'email', { label: 'Email Address', placeholder: 'email@example.com', required: false }),
+    cityCountry: getFieldConfig(fields, 'cityCountry', { label: 'City / State', placeholder: 'e.g. Mohali, Chandigarh, Delhi', required: false }),
+    cancerType: getFieldConfig(fields, 'cancerType', { label: 'Cancer Type / Body Area', placeholder: 'e.g. Lung, Breast, Colon, Lymphoma', required: false }),
+    currentDiagnosis: getFieldConfig(fields, 'currentDiagnosis', { label: 'Current Stage / Diagnosis Details', placeholder: 'e.g. Stage III adenocarcinoma, newly diagnosed', required: false }),
+    previousTreatment: getFieldConfig(fields, 'previousTreatment', { label: 'Previous Treatments (If Any)', placeholder: 'e.g. Surgery done in July, 2 cycles chemo completed', required: false }),
+    message: getFieldConfig(fields, 'message', { label: 'Specific Questions or Message for the Doctor', placeholder: 'What are your key questions regarding next steps, immunotherapy, or targeted therapy?', required: false })
+  }), [fields]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -145,37 +155,34 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
 
     if (formData.honeypot) return;
 
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      setErrorMessage('Please provide your full name and phone number so our team can follow up.');
+    // Validate using CMS rules
+    const validation = validateFormFields(
+      {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        cityCountry: formData.cityCountry,
+        cancerType: formData.cancerType,
+        currentDiagnosis: formData.currentDiagnosis,
+        previousTreatment: formData.previousTreatment,
+        message: formData.message
+      },
+      fieldRules
+    );
+
+    if (!validation.valid) {
+      setErrorMessage(validation.error || 'Please complete all required fields.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Step 1 & 2: POST /api/public/second-opinion without files to receive real requestId
-      const res = await api.post('/api/public/second-opinion', {
-        patient_name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        email: formData.email.trim(),
-        city: formData.cityCountry.trim() || 'Not specified',
-        cancer_type: formData.cancerType.trim() || defaultCancerType || 'General Oncology',
-        stage: formData.currentDiagnosis.trim() || 'Reports attached for review',
-        current_treatment: formData.previousTreatment.trim() || 'None / Not specified',
-        specific_questions: formData.message.trim(),
-        fileIds: []
-      });
-
-      const realRequestId = res.data?.requestId;
-      if (!realRequestId) {
-        throw new Error('Failed to obtain request ID from server');
-      }
-
-      // Step 3: upload each selected file to /api/public/second-opinion/upload-report with real requestId
+      // Step 1: Upload attached reports using pre-generated stable requestId
       for (const item of selectedFiles) {
         const formDataPayload = new FormData();
         formDataPayload.append('file', item.file);
         formDataPayload.append('fileType', item.category.toLowerCase());
-        formDataPayload.append('requestId', realRequestId);
+        formDataPayload.append('requestId', requestId);
 
         const uploadRes = await fetch(apiUrl('/api/public/second-opinion/upload-report'), {
           method: 'POST',
@@ -189,16 +196,42 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
         }
       }
 
-      // Step 4: show success only after appropriate completion
+      // Step 2: Submit final second opinion record using the same requestId
+      const success = await submitSecondOpinion({
+        requestId,
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        cityCountry: formData.cityCountry.trim(),
+        cancerType: formData.cancerType.trim() || defaultCancerType || '',
+        currentDiagnosis: formData.currentDiagnosis.trim(),
+        previousTreatment: formData.previousTreatment.trim(),
+        message: formData.message.trim(),
+        attachedFiles: selectedFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          category: f.category,
+          size: f.size,
+          type: f.file.type || 'application/pdf',
+          uploadedAt: new Date().toISOString()
+        }))
+      });
+
+      if (!success) {
+        setErrorMessage('Could not submit your second opinion request. Please try again.');
+        return;
+      }
+
       setSubmitSuccess(true);
     } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred. Please contact the oncology OPD directly.');
+      setErrorMessage(err.message || 'Could not submit your second opinion request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
+    setRequestId(crypto.randomUUID());
     setFormData({
       name: '',
       phone: '',
@@ -215,6 +248,8 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
     setErrorMessage(null);
   };
 
+  const successMessageText = secondOpinionConfig?.successMessage?.trim() || 'Your second opinion request has been submitted securely.';
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -225,7 +260,7 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
             height: `calc(100dvh - ${headerHeight}px)`
           }}
         >
-          {/* Backdrop (Starts below navbar, does not darken or blur navbar) */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -235,7 +270,7 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
             className="absolute inset-0 bg-[#05101C]/52 backdrop-blur-[6px]"
           />
 
-          {/* Wrapper to hold the floating panel with proper click-through bounds */}
+          {/* Wrapper */}
           <div className="absolute inset-0 flex justify-end pointer-events-none overflow-hidden">
             {/* Drawer Panel */}
             <motion.div
@@ -244,11 +279,8 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
               exit={{ x: 24, opacity: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className="pointer-events-auto bg-white shadow-2xl flex flex-col overflow-hidden border border-slate-200/60
-                /* Mobile layout: floating card with consistent 16px padding from viewport edges */
                 w-[calc(100vw-32px)] h-[calc(100%-32px)] max-h-[calc(100%-32px)] my-4 mr-4 ml-auto rounded-[20px]
-                /* Tablet layout (>= 768px): balanced 24px margins, refined content bounds */
                 md:w-[min(600px,calc(100vw-48px))] md:h-[calc(100%-48px)] md:max-h-[calc(100%-48px)] md:my-6 md:mr-6 md:ml-auto md:rounded-[24px]
-                /* Large Desktop layout (>= 1024px): luxurious 32px margins */
                 lg:w-[min(620px,calc(100vw-64px))] lg:h-[calc(100%-64px)] lg:max-h-[calc(100%-64px)] lg:my-8 lg:mr-8 lg:ml-auto lg:rounded-[28px]
               "
             >
@@ -284,8 +316,7 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
                     Case Submitted Successfully
                   </h4>
                   <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                    Thank you. Your records have been securely routed to Dr. Bhushan Parmar’s oncology review desk.
-                    Our clinical coordinator will reach out to you within 24–48 hours to discuss review insights and scheduling.
+                    {successMessageText}
                   </p>
 
                   {(practiceLocation?.phonePrimary || practiceLocation?.hospitalName) && (
@@ -323,9 +354,8 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
               ) : (
                 /* Scrollable Form */
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden min-w-0">
-                  {/* Scrollable Form Content */}
                   <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 sm:px-8 sm:py-8 space-y-6 min-w-0">
-                    {/* Honeypot anti-spam */}
+                    {/* Honeypot */}
                     <input
                       type="text"
                       name="hp_website"
@@ -344,123 +374,151 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
                     )}
 
                     {/* Row 1: Full Name | Phone Number */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
-                      <div className="min-w-0">
-                        <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          Full Name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Patient's full name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                        />
-                      </div>
+                    {(fieldRules.name.enabled !== false || fieldRules.phone.enabled !== false) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
+                        {fieldRules.name.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.name.label} {fieldRules.name.required && <span className="text-rose-500">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              required={fieldRules.name.required}
+                              placeholder={fieldRules.name.placeholder}
+                              value={formData.name}
+                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
 
-                      <div className="min-w-0">
-                        <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          Phone Number <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          placeholder="+91 Mobile number"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                        />
+                        {fieldRules.phone.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.phone.label} {fieldRules.phone.required && <span className="text-rose-500">*</span>}
+                            </label>
+                            <input
+                              type="tel"
+                              required={fieldRules.phone.required}
+                              placeholder={fieldRules.phone.placeholder}
+                              value={formData.phone}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
 
                     {/* Row 2: Email | City/State */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
-                      <div className="min-w-0">
-                        <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
-                        </label>
-                        <input
-                          type="email"
-                          placeholder="email@example.com"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                        />
-                      </div>
+                    {(fieldRules.email.enabled !== false || fieldRules.cityCountry.enabled !== false) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
+                        {fieldRules.email.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.email.label} {fieldRules.email.required ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                            </label>
+                            <input
+                              type="email"
+                              required={fieldRules.email.required}
+                              placeholder={fieldRules.email.placeholder}
+                              value={formData.email}
+                              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
 
-                      <div className="min-w-0">
-                        <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          City / State
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Mohali, Chandigarh, Delhi"
-                          value={formData.cityCountry}
-                          onChange={(e) => setFormData({ ...formData, cityCountry: e.target.value })}
-                          className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                        />
+                        {fieldRules.cityCountry.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.cityCountry.label} {fieldRules.cityCountry.required && <span className="text-rose-500">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              required={fieldRules.cityCountry.required}
+                              placeholder={fieldRules.cityCountry.placeholder}
+                              value={formData.cityCountry}
+                              onChange={(e) => setFormData({ ...formData, cityCountry: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
 
                     {/* Row 3: Cancer Type | Stage */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
+                    {(fieldRules.cancerType.enabled !== false || fieldRules.currentDiagnosis.enabled !== false) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4.5 min-w-0">
+                        {fieldRules.cancerType.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.cancerType.label} {fieldRules.cancerType.required && <span className="text-rose-500">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              required={fieldRules.cancerType.required}
+                              placeholder={fieldRules.cancerType.placeholder}
+                              value={formData.cancerType}
+                              onChange={(e) => setFormData({ ...formData, cancerType: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
+
+                        {fieldRules.currentDiagnosis.enabled !== false && (
+                          <div className="min-w-0">
+                            <label className="block text-xs font-semibold text-slate-800 mb-2">
+                              {fieldRules.currentDiagnosis.label} {fieldRules.currentDiagnosis.required && <span className="text-rose-500">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              required={fieldRules.currentDiagnosis.required}
+                              placeholder={fieldRules.currentDiagnosis.placeholder}
+                              value={formData.currentDiagnosis}
+                              onChange={(e) => setFormData({ ...formData, currentDiagnosis: e.target.value })}
+                              className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Full-width: Previous Treatments */}
+                    {fieldRules.previousTreatment.enabled !== false && (
                       <div className="min-w-0">
                         <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          Cancer Type / Body Area
+                          {fieldRules.previousTreatment.label} {fieldRules.previousTreatment.required && <span className="text-rose-500">*</span>}
                         </label>
                         <input
                           type="text"
-                          placeholder="e.g. Lung, Breast, Colon, Lymphoma"
-                          value={formData.cancerType}
-                          onChange={(e) => setFormData({ ...formData, cancerType: e.target.value })}
+                          required={fieldRules.previousTreatment.required}
+                          placeholder={fieldRules.previousTreatment.placeholder}
+                          value={formData.previousTreatment}
+                          onChange={(e) => setFormData({ ...formData, previousTreatment: e.target.value })}
                           className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                         />
                       </div>
+                    )}
 
+                    {/* Full-width: Specific Questions */}
+                    {fieldRules.message.enabled !== false && (
                       <div className="min-w-0">
                         <label className="block text-xs font-semibold text-slate-800 mb-2">
-                          Current Stage / Diagnosis Details
+                          {fieldRules.message.label} {fieldRules.message.required && <span className="text-rose-500">*</span>}
                         </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Stage III adenocarcinoma, newly diagnosed"
-                          value={formData.currentDiagnosis}
-                          onChange={(e) => setFormData({ ...formData, currentDiagnosis: e.target.value })}
-                          className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                        <textarea
+                          rows={3}
+                          required={fieldRules.message.required}
+                          placeholder={fieldRules.message.placeholder}
+                          value={formData.message}
+                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                          className="w-full min-h-[100px] px-3.5 py-3 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none"
                         />
                       </div>
-                    </div>
+                    )}
 
-                    {/* Full-width Fields: Previous Treatments */}
-                    <div className="min-w-0">
-                      <label className="block text-xs font-semibold text-slate-800 mb-2">
-                        Previous Treatments (If Any)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Surgery done in July, 2 cycles chemo completed, or treatment not yet started"
-                        value={formData.previousTreatment}
-                        onChange={(e) => setFormData({ ...formData, previousTreatment: e.target.value })}
-                        className="w-full h-[48px] px-3.5 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                      />
-                    </div>
-
-                    {/* Full-width Fields: Specific Questions */}
-                    <div className="min-w-0">
-                      <label className="block text-xs font-semibold text-slate-800 mb-2">
-                        Specific Questions or Message for the Doctor
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="What are your key questions regarding next steps, immunotherapy, or targeted therapy?"
-                        value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        className="w-full min-h-[100px] px-3.5 py-3 bg-stone-50/70 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none"
-                      />
-                    </div>
-
-                    {/* Report Upload Section */}
+                    {/* Report Upload Section (Kept separate) */}
                     <div className="pt-6 border-t border-slate-200/60 min-w-0">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-xs font-semibold text-slate-800 flex items-center space-x-1.5">

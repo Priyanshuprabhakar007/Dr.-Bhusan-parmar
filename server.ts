@@ -601,15 +601,64 @@ async function startServer() {
   // POST /api/public/enquiries - Public enquiry submission (Appointments, Contact)
   app.post('/api/public/enquiries', (req, res) => {
     try {
-      const { name, phone, email } = req.body || {};
-      if (!name || (!phone && !email)) {
-        return res.status(400).json({ error: 'Name and contact info are required' });
+      const body = req.body || {};
+      const rawType = typeof body.type === 'string' ? body.type.trim() : 'general';
+      const allowedTypes = ['appointment', 'contact', 'general'];
+      if (!allowedTypes.includes(rawType)) {
+        return res.status(400).json({ error: 'Invalid enquiry type' });
       }
+
+      const name = typeof body.name === 'string' ? body.name.trim() : '';
+      const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      const preferredDate = typeof (body.preferredDate ?? body.preferred_date) === 'string' ? (body.preferredDate ?? body.preferred_date).trim() : '';
+      const preferredTime = typeof (body.preferredTime ?? body.preferred_time ?? body.preferredSlot) === 'string' ? (body.preferredTime ?? body.preferred_time ?? body.preferredSlot).trim() : '';
+      const locationId = typeof (body.locationId ?? body.location_id) === 'string' ? (body.locationId ?? body.location_id).trim() : '';
+      const cancerType = typeof (body.cancerType ?? body.cancer_type ?? body.cancerTypeOrConcern) === 'string' ? (body.cancerType ?? body.cancer_type ?? body.cancerTypeOrConcern).trim() : '';
+      const consultationType = typeof (body.consultationType ?? body.consultation_type) === 'string' ? (body.consultationType ?? body.consultation_type).trim() : '';
+      const message = typeof (body.message ?? body.notes) === 'string' ? (body.message ?? body.notes).trim() : '';
+
+      if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+      }
+      if (name.length > 120) {
+        return res.status(400).json({ error: 'Name exceeds maximum length of 120 characters' });
+      }
+      if (!phone && !email) {
+        return res.status(400).json({ error: 'At least phone or email is required' });
+      }
+      if (phone && phone.length > 40) {
+        return res.status(400).json({ error: 'Phone exceeds maximum length of 40 characters' });
+      }
+      if (email) {
+        if (email.length > 254) {
+          return res.status(400).json({ error: 'Email exceeds maximum length of 254 characters' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ error: 'Invalid email address format' });
+        }
+      }
+      if (preferredDate.length > 40) return res.status(400).json({ error: 'Preferred date exceeds maximum length' });
+      if (preferredTime.length > 100) return res.status(400).json({ error: 'Preferred time exceeds maximum length' });
+      if (locationId.length > 100) return res.status(400).json({ error: 'Location ID exceeds maximum length' });
+      if (cancerType.length > 200) return res.status(400).json({ error: 'Cancer type exceeds maximum length' });
+      if (consultationType.length > 100) return res.status(400).json({ error: 'Consultation type exceeds maximum length' });
+      if (message.length > 5000) return res.status(400).json({ error: 'Message exceeds maximum length' });
 
       const store = getD1Store();
       const enquiry = {
         id: `enq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        ...req.body,
+        type: rawType,
+        name,
+        phone,
+        email,
+        preferred_date: preferredDate,
+        preferred_time: preferredTime,
+        location_id: locationId,
+        cancer_type: cancerType,
+        consultation_type: consultationType,
+        message,
         created_at: new Date().toISOString(),
         status: 'new'
       };
@@ -624,16 +673,60 @@ async function startServer() {
   // POST /api/public/second-opinion - Public second opinion submission
   app.post('/api/public/second-opinion', (req, res) => {
     try {
-      const { patient_name, patientName } = req.body || {};
-      if (!patient_name && !patientName) {
+      const body = req.body || {};
+      const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
+      const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      const city = typeof (body.city ?? body.cityCountry ?? body.city_country) === 'string' ? (body.city ?? body.cityCountry ?? body.city_country).trim() : '';
+      const country = typeof body.country === 'string' ? body.country.trim() : 'India';
+      const cancerType = typeof (body.cancerType ?? body.cancer_type) === 'string' ? (body.cancerType ?? body.cancer_type).trim() : '';
+      const stage = typeof (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis) === 'string' ? (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis).trim() : '';
+      const currentTreatment = typeof (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment) === 'string' ? (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment).trim() : '';
+      const specificQuestions = typeof (body.specificQuestions ?? body.specific_questions ?? body.message) === 'string' ? (body.specificQuestions ?? body.specific_questions ?? body.message).trim() : '';
+      const urgency = typeof body.urgency === 'string' ? body.urgency.trim() : 'routine';
+
+      if (!patientName) {
         return res.status(400).json({ error: 'Patient name is required' });
       }
+      if (patientName.length > 120) {
+        return res.status(400).json({ error: 'Patient name exceeds maximum length of 120 characters' });
+      }
+      if (!phone && !email) {
+        return res.status(400).json({ error: 'At least phone or email is required' });
+      }
+      if (phone && phone.length > 40) {
+        return res.status(400).json({ error: 'Phone exceeds maximum length of 40 characters' });
+      }
+      if (email) {
+        if (email.length > 254) {
+          return res.status(400).json({ error: 'Email exceeds maximum length of 254 characters' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ error: 'Invalid email address format' });
+        }
+      }
+      if (city.length > 120) return res.status(400).json({ error: 'City exceeds maximum length of 120 characters' });
+      if (country.length > 100) return res.status(400).json({ error: 'Country exceeds maximum length of 100 characters' });
+      if (cancerType.length > 200) return res.status(400).json({ error: 'Cancer type exceeds maximum length of 200 characters' });
+      if (stage.length > 1000) return res.status(400).json({ error: 'Diagnosis/stage details exceed maximum length of 1000 characters' });
+      if (currentTreatment.length > 2000) return res.status(400).json({ error: 'Treatment history exceeds maximum length of 2000 characters' });
+      if (specificQuestions.length > 5000) return res.status(400).json({ error: 'Questions/message exceeds maximum length of 5000 characters' });
 
       const store = getD1Store();
-      const requestId = req.body.id || req.body.requestId || `so-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const requestId = body.id || body.requestId || `so-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const requestRecord = {
         id: requestId,
-        ...req.body,
+        patient_name: patientName,
+        phone,
+        email,
+        city,
+        country,
+        cancer_type: cancerType,
+        stage,
+        current_treatment: currentTreatment,
+        specific_questions: specificQuestions,
+        urgency,
         status: 'new',
         created_at: new Date().toISOString()
       };

@@ -521,7 +521,50 @@ export default {
       if (pathname === '/api/public/enquiries' && request.method === 'POST') {
         if (isRateLimited(clientIp, 15, 600000)) return json({ error: 'Submission limit reached.' }, 429);
         const body = (await request.json().catch(() => ({}))) as any;
-        if (!body.name || (!body.phone && !body.email)) return json({ error: 'Name and contact info required' }, 400);
+
+        const rawType = typeof body.type === 'string' ? body.type.trim() : 'general';
+        const allowedTypes = ['appointment', 'contact', 'general'];
+        if (!allowedTypes.includes(rawType)) {
+          return json({ error: 'Invalid enquiry type' }, 400);
+        }
+
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+        const email = typeof body.email === 'string' ? body.email.trim() : '';
+        const preferredDate = typeof (body.preferredDate ?? body.preferred_date) === 'string' ? (body.preferredDate ?? body.preferred_date).trim() : '';
+        const preferredTime = typeof (body.preferredTime ?? body.preferred_time ?? body.preferredSlot) === 'string' ? (body.preferredTime ?? body.preferred_time ?? body.preferredSlot).trim() : '';
+        const locationId = typeof (body.locationId ?? body.location_id) === 'string' ? (body.locationId ?? body.location_id).trim() : '';
+        const cancerType = typeof (body.cancerType ?? body.cancer_type ?? body.cancerTypeOrConcern) === 'string' ? (body.cancerType ?? body.cancer_type ?? body.cancerTypeOrConcern).trim() : '';
+        const consultationType = typeof (body.consultationType ?? body.consultation_type) === 'string' ? (body.consultationType ?? body.consultation_type).trim() : '';
+        const message = typeof (body.message ?? body.notes) === 'string' ? (body.message ?? body.notes).trim() : '';
+
+        if (!name) {
+          return json({ error: 'Name is required' }, 400);
+        }
+        if (name.length > 120) {
+          return json({ error: 'Name exceeds maximum length of 120 characters' }, 400);
+        }
+        if (!phone && !email) {
+          return json({ error: 'At least phone or email is required' }, 400);
+        }
+        if (phone && phone.length > 40) {
+          return json({ error: 'Phone exceeds maximum length of 40 characters' }, 400);
+        }
+        if (email) {
+          if (email.length > 254) {
+            return json({ error: 'Email exceeds maximum length of 254 characters' }, 400);
+          }
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            return json({ error: 'Invalid email address format' }, 400);
+          }
+        }
+        if (preferredDate.length > 40) return json({ error: 'Preferred date exceeds maximum length' }, 400);
+        if (preferredTime.length > 100) return json({ error: 'Preferred time exceeds maximum length' }, 400);
+        if (locationId.length > 100) return json({ error: 'Location ID exceeds maximum length' }, 400);
+        if (cancerType.length > 200) return json({ error: 'Cancer type exceeds maximum length' }, 400);
+        if (consultationType.length > 100) return json({ error: 'Consultation type exceeds maximum length' }, 400);
+        if (message.length > 5000) return json({ error: 'Message exceeds maximum length' }, 400);
 
         const id = `enq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await env.DB.prepare(
@@ -529,16 +572,16 @@ export default {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           id,
-          body.type || 'general',
-          body.name.trim(),
-          body.phone?.trim() || '',
-          body.email?.trim() || '',
-          body.preferredDate || body.preferred_date || '',
-          body.preferredTime || body.preferred_time || '',
-          body.locationId || body.location_id || '',
-          body.cancerType || body.cancer_type || '',
-          body.consultationType || body.consultation_type || '',
-          body.message || '',
+          rawType,
+          name,
+          phone,
+          email,
+          preferredDate,
+          preferredTime,
+          locationId,
+          cancerType,
+          consultationType,
+          message,
           'new'
         ).run();
 
@@ -548,7 +591,45 @@ export default {
       if (pathname === '/api/public/second-opinion' && request.method === 'POST') {
         if (isRateLimited(clientIp, 10, 600000)) return json({ error: 'Submission limit reached.' }, 429);
         const body = (await request.json().catch(() => ({}))) as any;
-        if (!body.patient_name && !body.patientName) return json({ error: 'Patient name required' }, 400);
+
+        const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
+        const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+        const email = typeof body.email === 'string' ? body.email.trim() : '';
+        const city = typeof (body.city ?? body.cityCountry ?? body.city_country) === 'string' ? (body.city ?? body.cityCountry ?? body.city_country).trim() : '';
+        const country = typeof body.country === 'string' ? body.country.trim() : 'India';
+        const cancerType = typeof (body.cancerType ?? body.cancer_type) === 'string' ? (body.cancerType ?? body.cancer_type).trim() : '';
+        const stage = typeof (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis) === 'string' ? (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis).trim() : '';
+        const currentTreatment = typeof (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment) === 'string' ? (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment).trim() : '';
+        const specificQuestions = typeof (body.specificQuestions ?? body.specific_questions ?? body.message) === 'string' ? (body.specificQuestions ?? body.specific_questions ?? body.message).trim() : '';
+        const urgency = typeof body.urgency === 'string' ? body.urgency.trim() : 'routine';
+
+        if (!patientName) {
+          return json({ error: 'Patient name is required' }, 400);
+        }
+        if (patientName.length > 120) {
+          return json({ error: 'Patient name exceeds maximum length of 120 characters' }, 400);
+        }
+        if (!phone && !email) {
+          return json({ error: 'At least phone or email is required' }, 400);
+        }
+        if (phone && phone.length > 40) {
+          return json({ error: 'Phone exceeds maximum length of 40 characters' }, 400);
+        }
+        if (email) {
+          if (email.length > 254) {
+            return json({ error: 'Email exceeds maximum length of 254 characters' }, 400);
+          }
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            return json({ error: 'Invalid email address format' }, 400);
+          }
+        }
+        if (city.length > 120) return json({ error: 'City exceeds maximum length of 120 characters' }, 400);
+        if (country.length > 100) return json({ error: 'Country exceeds maximum length of 100 characters' }, 400);
+        if (cancerType.length > 200) return json({ error: 'Cancer type exceeds maximum length of 200 characters' }, 400);
+        if (stage.length > 1000) return json({ error: 'Diagnosis/stage details exceed maximum length of 1000 characters' }, 400);
+        if (currentTreatment.length > 2000) return json({ error: 'Treatment history exceeds maximum length of 2000 characters' }, 400);
+        if (specificQuestions.length > 5000) return json({ error: 'Questions/message exceeds maximum length of 5000 characters' }, 400);
 
         const id = body.id || body.requestId || `so-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await env.DB.prepare(
@@ -556,16 +637,16 @@ export default {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           id,
-          body.patientName || body.patient_name || '',
-          body.phone || '',
-          body.email || '',
-          body.city || '',
-          body.country || 'India',
-          body.cancerType || body.cancer_type || '',
-          body.stage || '',
-          body.currentTreatment || body.current_treatment || '',
-          body.specificQuestions || body.specific_questions || body.message || '',
-          body.urgency || 'routine',
+          patientName,
+          phone,
+          email,
+          city,
+          country,
+          cancerType,
+          stage,
+          currentTreatment,
+          specificQuestions,
+          urgency,
           'new'
         ).run();
 

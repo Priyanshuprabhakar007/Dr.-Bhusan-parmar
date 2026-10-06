@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/DataContext';
+import { getFieldConfig, validateFormFields } from '../utils/formBuilder';
 import {
   X,
   Calendar,
@@ -10,14 +11,14 @@ import {
 } from 'lucide-react';
 
 export const AppointmentModal: React.FC = () => {
-  const { isAppointmentModalOpen, closeAppointmentModal, practiceLocation, submitAppointment } = useData();
+  const { isAppointmentModalOpen, closeAppointmentModal, practiceLocation, submitAppointment, formBuilderConfig } = useData();
 
   const [formData, setFormData] = useState({
     patientName: '',
     phone: '',
     email: '',
     preferredDate: '',
-    preferredSlot: 'Morning',
+    preferredSlot: 'No preference',
     consultationType: 'In-Person (Hospital)' as 'In-Person (Hospital)' | 'Video Consultation',
     cancerTypeOrConcern: '',
     notes: '',
@@ -27,6 +28,21 @@ export const AppointmentModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Field configurations from CMS Form Builder
+  const appointmentConfig = formBuilderConfig?.appointmentForm;
+  const fields = appointmentConfig?.fields;
+
+  const fieldRules = useMemo(() => ({
+    patientName: getFieldConfig(fields, 'patientName', { label: 'Patient Full Name', placeholder: 'e.g. Ramesh Kumar', required: true }),
+    phone: getFieldConfig(fields, 'phone', { label: 'Phone / Mobile', placeholder: 'Enter contact number', required: true }),
+    email: getFieldConfig(fields, 'email', { label: 'Email (Optional)', placeholder: 'name@example.com', required: false }),
+    preferredDate: getFieldConfig(fields, 'preferredDate', { label: 'Preferred Date', placeholder: 'Select date', required: true }),
+    preferredSlot: getFieldConfig(fields, 'preferredSlot', { label: 'Time Window', placeholder: 'Select time preference', required: false }),
+    consultationType: getFieldConfig(fields, 'consultationType', { label: 'Consultation Mode', placeholder: 'In-Person or Video', required: true }),
+    cancerTypeOrConcern: getFieldConfig(fields, 'cancerTypeOrConcern', { label: 'Cancer Type / Primary Medical Concern', placeholder: 'e.g. Breast, Lung, Lymphoma, Second Opinion...', required: false }),
+    notes: getFieldConfig(fields, 'notes', { label: 'Brief Medical Summary or Notes', placeholder: 'Summary of biopsy, staging, or questions for Dr. Parmar...', required: false })
+  }), [fields]);
 
   // Body scroll lock & modal-open class
   useEffect(() => {
@@ -62,14 +78,9 @@ export const AppointmentModal: React.FC = () => {
 
     if (formData.honeypot) return;
 
-    if (!formData.patientName.trim() || !formData.phone.trim() || !formData.preferredDate) {
-      setError('Please provide patient name, phone number, and preferred date.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await submitAppointment({
+    // Client-side validation against CMS field rules
+    const validation = validateFormFields(
+      {
         patientName: formData.patientName,
         phone: formData.phone,
         email: formData.email,
@@ -78,10 +89,36 @@ export const AppointmentModal: React.FC = () => {
         consultationType: formData.consultationType,
         cancerTypeOrConcern: formData.cancerTypeOrConcern,
         notes: formData.notes
+      },
+      fieldRules
+    );
+
+    if (!validation.valid) {
+      setError(validation.error || 'Please complete all required fields.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await submitAppointment({
+        patientName: formData.patientName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        preferredDate: formData.preferredDate.trim(),
+        preferredSlot: formData.preferredSlot.trim(),
+        consultationType: formData.consultationType,
+        cancerTypeOrConcern: formData.cancerTypeOrConcern.trim(),
+        notes: formData.notes.trim()
       });
+
+      if (!res) {
+        setError('Could not process your request. Please try again.');
+        return;
+      }
+
       setSuccess(true);
     } catch (err) {
-      setError('Could not process booking. Please call the clinic directly.');
+      setError('Could not process your request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -92,6 +129,8 @@ export const AppointmentModal: React.FC = () => {
     setError(null);
     closeAppointmentModal();
   };
+
+  const successMessage = appointmentConfig?.successMessage?.trim() || 'Your consultation request has been received successfully.';
 
   return createPortal(
     <div
@@ -145,14 +184,18 @@ export const AppointmentModal: React.FC = () => {
                 Appointment Requested!
               </h4>
               <p className="text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
-                Thank you. We have logged your request. Our oncology coordinator will contact you at <strong>{formData.phone}</strong> shortly to confirm your consultation schedule.
+                {successMessage}
               </p>
               <div className="bg-slate-50 p-4 rounded-2xl text-xs text-slate-600 text-left space-y-1.5 border border-slate-200/60">
                 {practiceLocation?.hospitalName && (
                   <div><strong>Center:</strong> {practiceLocation.hospitalName}</div>
                 )}
-                <div><strong>Mode:</strong> {formData.consultationType}</div>
-                <div><strong>Requested Date:</strong> {formData.preferredDate}</div>
+                {fieldRules.consultationType.enabled && (
+                  <div><strong>Mode:</strong> {formData.consultationType}</div>
+                )}
+                {fieldRules.preferredDate.enabled && formData.preferredDate && (
+                  <div><strong>Requested Date:</strong> {formData.preferredDate}</div>
+                )}
               </div>
               <button
                 onClick={handleClose}
@@ -181,125 +224,150 @@ export const AppointmentModal: React.FC = () => {
               )}
 
               {/* Consultation Type Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Consultation Mode
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['In-Person (Hospital)', 'Video Consultation'] as const).map(mode => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, consultationType: mode })}
-                      className={`h-11 py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                        formData.consultationType === mode
-                          ? 'bg-teal-50 border-teal-600 text-teal-950 font-bold shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
+              {fieldRules.consultationType.enabled && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    {fieldRules.consultationType.label} {fieldRules.consultationType.required && <span className="text-rose-500">*</span>}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['In-Person (Hospital)', 'Video Consultation'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, consultationType: mode })}
+                        className={`h-11 py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                          formData.consultationType === mode
+                            ? 'bg-teal-50 border-teal-600 text-teal-950 font-bold shadow-2xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Patient Name */}
+              {fieldRules.patientName.enabled && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    {fieldRules.patientName.label} {fieldRules.patientName.required && <span className="text-rose-500">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    required={fieldRules.patientName.required}
+                    placeholder={fieldRules.patientName.placeholder}
+                    value={formData.patientName}
+                    onChange={e => setFormData({ ...formData, patientName: e.target.value })}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                  />
+                </div>
+              )}
+
+              {/* Phone & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {fieldRules.phone.enabled && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {fieldRules.phone.label} {fieldRules.phone.required && <span className="text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="tel"
+                      required={fieldRules.phone.required}
+                      placeholder={fieldRules.phone.placeholder}
+                      value={formData.phone}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                    />
+                  </div>
+                )}
+
+                {fieldRules.email.enabled && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {fieldRules.email.label} {fieldRules.email.required && <span className="text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="email"
+                      required={fieldRules.email.required}
+                      placeholder={fieldRules.email.placeholder}
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Date & Time Window */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {fieldRules.preferredDate.enabled && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {fieldRules.preferredDate.label} {fieldRules.preferredDate.required && <span className="text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="date"
+                      required={fieldRules.preferredDate.required}
+                      value={formData.preferredDate}
+                      onChange={e => setFormData({ ...formData, preferredDate: e.target.value })}
+                      className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                    />
+                  </div>
+                )}
+
+                {fieldRules.preferredSlot.enabled && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {fieldRules.preferredSlot.label} {fieldRules.preferredSlot.required && <span className="text-rose-500">*</span>}
+                    </label>
+                    <select
+                      value={formData.preferredSlot}
+                      onChange={e => setFormData({ ...formData, preferredSlot: e.target.value })}
+                      className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 cursor-pointer"
                     >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
+                      <option value="No preference">No preference</option>
+                      <option value="Morning">Morning</option>
+                      <option value="Afternoon">Afternoon</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Patient Full Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ramesh Kumar"
-                  value={formData.patientName}
-                  onChange={e => setFormData({ ...formData, patientName: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Cancer Type / Concern */}
+              {fieldRules.cancerTypeOrConcern.enabled && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Phone / Mobile <span className="text-rose-500">*</span>
+                    {fieldRules.cancerTypeOrConcern.label} {fieldRules.cancerTypeOrConcern.required && <span className="text-rose-500">*</span>}
                   </label>
                   <input
-                    type="tel"
-                    required
-                    placeholder="Enter contact number"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    type="text"
+                    required={fieldRules.cancerTypeOrConcern.required}
+                    placeholder={fieldRules.cancerTypeOrConcern.placeholder}
+                    value={formData.cancerTypeOrConcern}
+                    onChange={e => setFormData({ ...formData, cancerTypeOrConcern: e.target.value })}
                     className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
                   />
                 </div>
+              )}
 
+              {/* Notes */}
+              {fieldRules.notes.enabled && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Email (Optional)
+                    {fieldRules.notes.label} {fieldRules.notes.required && <span className="text-rose-500">*</span>}
                   </label>
-                  <input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                  <textarea
+                    rows={2}
+                    required={fieldRules.notes.required}
+                    placeholder={fieldRules.notes.placeholder}
+                    value={formData.notes}
+                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Preferred Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.preferredDate}
-                    onChange={e => setFormData({ ...formData, preferredDate: e.target.value })}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Time Window
-                  </label>
-                  <select
-                    value={formData.preferredSlot}
-                    onChange={e => setFormData({ ...formData, preferredSlot: e.target.value })}
-                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 cursor-pointer"
-                  >
-                    <option value="Morning (10:00 AM – 01:00 PM)">Morning (10:00 AM – 01:00 PM)</option>
-                    <option value="Afternoon (01:00 PM – 04:00 PM)">Afternoon (01:00 PM – 04:00 PM)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Cancer Type / Primary Medical Concern
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Breast, Lung, Lymphoma, Second Opinion..."
-                  value={formData.cancerTypeOrConcern}
-                  onChange={e => setFormData({ ...formData, cancerTypeOrConcern: e.target.value })}
-                  className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Brief Medical Summary or Notes
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Summary of biopsy, staging, or questions for Dr. Parmar..."
-                  value={formData.notes}
-                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
-                />
-              </div>
+              )}
 
               <div className="pt-2">
                 <button

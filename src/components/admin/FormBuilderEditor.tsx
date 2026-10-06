@@ -5,8 +5,10 @@ import {
   FileCode,
   Save,
   CheckCircle2,
+  AlertCircle,
   Bell,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 
 export const FormBuilderEditor: React.FC = () => {
@@ -15,17 +17,26 @@ export const FormBuilderEditor: React.FC = () => {
   const [activeForm, setActiveForm] = useState<'appointmentForm' | 'secondOpinionForm' | 'contactForm'>('appointmentForm');
   const [configState, setConfigState] = useState<FormBuilderConfig>(formBuilderConfig);
   const [saveToast, setSaveToast] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateFormBuilderConfig(configState);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    setSaveError(null);
+    setIsSaving(true);
+    const success = await updateFormBuilderConfig(configState);
+    setIsSaving(false);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      setSaveError('Failed to save form configuration. Please try again.');
+    }
   };
 
   const currentFormConfig = configState?.[activeForm] || {
-    notificationEmail: 'enquiries@drbhushanparmar.com',
-    successMessage: 'Thank you. Your request has been logged.',
+    notificationEmail: '',
+    successMessage: 'Your request has been received successfully.',
     fields: {}
   };
 
@@ -73,23 +84,40 @@ export const FormBuilderEditor: React.FC = () => {
             Patient Form Builder & Field Rules
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Customize input fields, placeholders, required validations, and staff email alerts for patient intake forms.
+            Customize public form fields, validation rules and confirmation messages.
           </p>
         </div>
 
         <button
           type="submit"
-          className="px-5 py-2.5 rounded-xl bg-[#073F3D] hover:bg-[#071D2D] text-white text-xs font-semibold flex items-center space-x-2 shadow-sm transition-colors cursor-pointer shrink-0"
+          disabled={isSaving}
+          className="px-5 py-2.5 rounded-xl bg-[#073F3D] hover:bg-[#071D2D] text-white text-xs font-semibold flex items-center space-x-2 shadow-sm transition-colors cursor-pointer shrink-0 disabled:opacity-50"
         >
-          <Save className="w-4 h-4 text-[#18B8B4]" />
-          <span>Save Form Config</span>
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-[#18B8B4]" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 text-[#18B8B4]" />
+              <span>Save Form Config</span>
+            </>
+          )}
         </button>
       </div>
 
       {saveToast && (
         <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center space-x-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
-          <span>Form fields and email notifications updated!</span>
+          <span>Form configuration saved successfully.</span>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2 animate-in fade-in">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{saveError}</span>
         </div>
       )}
 

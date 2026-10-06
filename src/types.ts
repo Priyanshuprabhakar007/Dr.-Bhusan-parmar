@@ -164,6 +164,7 @@ export interface AppointmentSubmission {
   consultationType: 'In-Person (Hospital)' | 'Video Consultation';
   cancerTypeOrConcern: string;
   notes?: string;
+  patientNotes?: string;
 }
 
 export interface LocalSeoPageData {

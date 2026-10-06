@@ -203,13 +203,13 @@ interface DataContextType {
   updateSiteSettings: (settings: Partial<SiteSettingsConfig>) => Promise<boolean>;
   updateSeoGlobalConfig: (seo: Partial<SeoGlobalConfig>) => void;
   updateRedirectRules: (rules: RedirectRule[]) => void;
-  updateFormBuilderConfig: (config: Partial<FormBuilderConfig>) => void;
+  updateFormBuilderConfig: (config: Partial<FormBuilderConfig>) => Promise<boolean>;
 
   // Submissions & Enquiries
   submitAppointment: (data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<boolean>;
   updateAppointmentStatus: (id: string, status: AppointmentSubmission['status'], notes?: string) => Promise<boolean>;
   deleteAppointment: (id: string) => Promise<boolean>;
-  submitSecondOpinion: (opinion: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<boolean>;
+  submitSecondOpinion: (opinion: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string }) => Promise<boolean>;
   updateSecondOpinionStatus: (id: string, status: SecondOpinionSubmission['status'], notes?: string) => Promise<boolean>;
   deleteSecondOpinion: (id: string) => Promise<boolean>;
   submitContactEnquiry: (enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'>) => Promise<boolean>;
@@ -337,11 +337,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 patientName: row.name,
                 phone: row.phone,
                 email: row.email || '',
-                consultationType: row.consultation_type || 'Clinic Consultation',
-                cancerTypeOrConcern: row.cancer_type || 'General Oncology',
-                preferredDate: row.preferred_date || new Date().toISOString().split('T')[0],
-                preferredSlot: row.preferred_time || 'Morning',
-                notes: row.admin_notes || row.message || '',
+                consultationType: row.consultation_type || 'In-Person (Hospital)',
+                cancerTypeOrConcern: row.cancer_type || '',
+                preferredDate: row.preferred_date || '',
+                preferredSlot: row.preferred_time || '',
+                patientNotes: row.message || '',
+                notes: row.admin_notes || '',
                 submittedAt: row.created_at || new Date().toISOString(),
                 status: mappedStatus as any
               });
@@ -1091,11 +1092,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('UPDATE', 'REDIRECTS', 'all', 'Updated URL 301/302 redirect rules in D1');
   };
 
-  const updateFormBuilderConfig = async (config: Partial<FormBuilderConfig>) => {
-    const updated = { ...formBuilderConfig, ...config };
-    await api.put('/api/admin/site-settings', { formBuilderConfig: updated });
-    setFormBuilderConfig(updated);
-    logActivity('UPDATE', 'FORMS', 'all', 'Updated consultation form fields and notification emails in D1');
+  const updateFormBuilderConfig = async (
+    config: Partial<FormBuilderConfig>
+  ): Promise<boolean> => {
+    try {
+      const updated = {
+        ...formBuilderConfig,
+        ...config
+      };
+
+      await api.put('/api/admin/site-settings', {
+        formBuilderConfig: updated
+      });
+
+      setFormBuilderConfig(updated);
+
+      logActivity(
+        'UPDATE',
+        'FORMS',
+        'all',
+        'Updated public form configuration in D1'
+      );
+
+      return true;
+    } catch (error) {
+      console.warn('Failed to update form builder configuration', error);
+      return false;
+    }
   };
 
   // Submissions
@@ -1114,6 +1137,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         consultation_type: data.consultationType,
         message: data.notes || ''
       });
+      if (!res.ok) {
+        return false;
+      }
       const id = res.data?.enquiryId || `app-${Date.now()}`;
       const newSubmission: AppointmentSubmission = {
         ...data,
@@ -1157,10 +1183,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const submitSecondOpinion = async (
-    data: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'>
+    data: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string }
   ): Promise<boolean> => {
     try {
       const res = await api.post('/api/public/second-opinion', {
+        requestId: data.requestId,
         patient_name: data.name,
         phone: data.phone,
         email: data.email,
@@ -1171,7 +1198,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         specific_questions: data.message,
         fileIds: (data.attachedFiles || []).map((f: any) => f.fileId || f.id)
       });
-      const id = res.data?.requestId || `so-${Date.now()}`;
+      if (!res.ok) {
+        return false;
+      }
+      const id = res.data?.requestId || data.requestId || `so-${Date.now()}`;
       const newSubmission: SecondOpinionSubmission = {
         ...data,
         id,
@@ -1224,6 +1254,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: enquiry.email,
         message: enquiry.message
       });
+      if (!res.ok) {
+        return false;
+      }
       const id = res.data?.enquiryId || `enq-${Date.now()}`;
       const newEnq: ContactEnquiryItem = {
         ...enquiry,

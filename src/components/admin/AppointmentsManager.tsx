@@ -306,6 +306,15 @@ export const AppointmentsManager: React.FC = () => {
                   {selectedLead.cancerTypeOrConcern}
                 </p>
               </div>
+
+              {selectedLead.patientNotes && (
+                <div>
+                  <span className="text-slate-400 text-[10px] block">Patient Provided Notes / History</span>
+                  <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">
+                    {selectedLead.patientNotes}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Internal Staff Notes */}

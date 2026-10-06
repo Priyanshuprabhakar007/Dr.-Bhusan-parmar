@@ -43,6 +43,10 @@ export interface Env {
   ALLOWED_ORIGIN?: string;
   ALLOWED_ORIGINS?: string;
   TURNSTILE_SECRET_KEY?: string;
+  RESEND_API_KEY?: string;
+  NOTIFICATION_FROM_EMAIL?: string;
+  EMAIL_NOTIFICATIONS_ENABLED?: string;
+  ADMIN_APP_URL?: string;
 }
 
 const PASSWORD_PBKDF2_ITERATIONS = 100000;
@@ -52,6 +56,276 @@ const UUID_V4_REGEX =
 
 function isValidUuidV4(value: string): boolean {
   return UUID_V4_REGEX.test(value);
+}
+
+function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function emailNotificationsEnabled(env: Env): boolean {
+  return env.EMAIL_NOTIFICATIONS_ENABLED === 'true';
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function getFormNotificationEmail(
+  env: Env,
+  formKey: 'appointmentForm' | 'contactForm' | 'secondOpinionForm'
+): Promise<string> {
+  const row = await env.DB.prepare(
+    'SELECT value FROM site_settings WHERE key = ?'
+  )
+    .bind('formBuilderConfig')
+    .first<any>();
+
+  if (!row?.value) return '';
+
+  let config: any = {};
+  try {
+    config = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+  } catch {
+    return '';
+  }
+
+  const email = config?.[formKey]?.notificationEmail;
+  if (typeof email !== 'string') return '';
+  const normalized = email.trim();
+  if (!isValidEmailAddress(normalized)) return '';
+  return normalized;
+}
+
+async function writeNotificationLog(
+  env: Env,
+  data: {
+    eventType: string;
+    entityId: string;
+    recipient?: string;
+    status: 'sent' | 'failed' | 'skipped';
+    providerMessageId?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }
+): Promise<void> {
+  try {
+    const logId = crypto.randomUUID();
+    const cleanErrorMsg = data.errorMessage ? String(data.errorMessage).substring(0, 500) : null;
+    await env.DB.prepare(
+      `INSERT INTO notification_delivery_logs (id, channel, provider, event_type, entity_id, recipient, status, provider_message_id, error_code, error_message, created_at, updated_at)
+       VALUES (?, 'email', 'resend', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    )
+      .bind(
+        logId,
+        data.eventType,
+        data.entityId,
+        data.recipient || null,
+        data.status,
+        data.providerMessageId || null,
+        data.errorCode || null,
+        cleanErrorMsg
+      )
+      .run();
+  } catch (logErr) {
+    console.warn('Failed to record notification delivery log:', logErr);
+  }
+}
+
+async function sendStaffNotification(
+  env: Env,
+  options: {
+    formKey: 'appointmentForm' | 'contactForm' | 'secondOpinionForm';
+    eventType: 'appointment' | 'contact' | 'second_opinion';
+    entityId: string;
+    receivedAt?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Check if email notifications are enabled
+    if (!emailNotificationsEnabled(env)) {
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        status: 'skipped',
+        errorMessage: 'Email notifications disabled (EMAIL_NOTIFICATIONS_ENABLED !== true)'
+      });
+      return { success: false, error: 'Email notifications disabled' };
+    }
+
+    // 2. Read staff recipient from CMS
+    const recipient = await getFormNotificationEmail(env, options.formKey);
+    if (!recipient) {
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        status: 'skipped',
+        errorMessage: `No valid notificationEmail configured for form ${options.formKey}`
+      });
+      return { success: false, error: 'No recipient email configured' };
+    }
+
+    // 3. Validate credentials
+    if (!env.RESEND_API_KEY || !env.RESEND_API_KEY.trim()) {
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        recipient,
+        status: 'skipped',
+        errorMessage: 'Missing RESEND_API_KEY environment variable'
+      });
+      return { success: false, error: 'Resend API key not configured' };
+    }
+
+    if (!env.NOTIFICATION_FROM_EMAIL || !env.NOTIFICATION_FROM_EMAIL.trim()) {
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        recipient,
+        status: 'skipped',
+        errorMessage: 'Missing NOTIFICATION_FROM_EMAIL environment variable'
+      });
+      return { success: false, error: 'Notification sender email not configured' };
+    }
+
+    const fromAddress = env.NOTIFICATION_FROM_EMAIL.trim();
+    if (!isValidEmailAddress(fromAddress)) {
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        recipient,
+        status: 'failed',
+        errorCode: 'INVALID_FROM_ADDRESS',
+        errorMessage: 'Invalid NOTIFICATION_FROM_EMAIL address format'
+      });
+      return { success: false, error: 'Invalid sender email format' };
+    }
+
+    // 4. Build privacy-safe minimal message (STRICT: NO PATIENT DATA)
+    const timestamp = options.receivedAt || new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    const safeEntityId = escapeHtml(options.entityId);
+    const adminUrl = env.ADMIN_APP_URL ? env.ADMIN_APP_URL.trim() : '';
+
+    let subject = '';
+    let categoryTitle = '';
+    let extraNotice = '';
+
+    if (options.eventType === 'appointment') {
+      subject = 'New appointment request received';
+      categoryTitle = 'Appointment Request';
+    } else if (options.eventType === 'second_opinion') {
+      subject = 'New second opinion request received';
+      categoryTitle = 'Second Opinion Request';
+      extraNotice = 'Secure reports, if submitted, are available only inside the authenticated admin workflow.';
+    } else {
+      subject = 'New website enquiry received';
+      categoryTitle = 'Website Enquiry';
+    }
+
+    const textLines = [
+      `A new ${categoryTitle.toLowerCase()} has been received through the website.`,
+      '',
+      `Request ID: ${options.entityId}`,
+      `Received: ${timestamp}`
+    ];
+    if (extraNotice) {
+      textLines.push('', extraNotice);
+    }
+    if (adminUrl) {
+      textLines.push('', 'Sign in to the secure admin panel to review the submission:', adminUrl);
+    } else {
+      textLines.push('', 'Sign in to the secure admin panel to review the submission.');
+    }
+    const textBody = textLines.join('\n');
+
+    const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; background-color: #f8fafc; padding: 24px; margin: 0;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="display: inline-block; padding: 4px 12px; background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+      Staff Notification
+    </div>
+    <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0;">${escapeHtml(subject)}</h2>
+    <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px 0;">
+      A new ${escapeHtml(categoryTitle.toLowerCase())} has been received through the website.
+    </p>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px;">
+      <div style="margin-bottom: 6px;"><strong style="color: #0f172a;">Request ID:</strong> <code style="font-family: monospace; color: #0f766e;">${safeEntityId}</code></div>
+      <div><strong style="color: #0f172a;">Received:</strong> ${escapeHtml(timestamp)}</div>
+    </div>
+    ${extraNotice ? `<p style="font-size: 12px; color: #64748b; margin: 0 0 20px 0; font-style: italic;">${escapeHtml(extraNotice)}</p>` : ''}
+    ${adminUrl ? `
+    <div style="text-align: left; margin-top: 24px;">
+      <a href="${escapeHtml(adminUrl)}" style="display: inline-block; background: #073F3D; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 10px 20px; border-radius: 10px;">
+        Open Admin Panel &rarr;
+      </a>
+    </div>` : '<p style="font-size: 12px; color: #64748b; margin-top: 20px;">Sign in to the secure admin panel to review the submission.</p>'}
+  </div>
+</body>
+</html>`;
+
+    // 5. Call Resend API via fetch with deterministic Idempotency-Key
+    const idempotencyKey = `website-notification/${options.eventType}/${options.entityId}`;
+
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY.trim()}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify({
+        from: `Dr. Bhushan Website <${fromAddress}>`,
+        to: [recipient],
+        subject,
+        text: textBody,
+        html: htmlBody
+      })
+    });
+
+    if (!resendRes.ok) {
+      const errorJson = await resendRes.json().catch(() => ({}));
+      const statusCode = resendRes.status;
+      const errorMsg = (errorJson as any)?.message || (errorJson as any)?.error || `HTTP ${statusCode}`;
+      await writeNotificationLog(env, {
+        eventType: options.eventType,
+        entityId: options.entityId,
+        recipient,
+        status: 'failed',
+        errorCode: String(statusCode),
+        errorMessage: String(errorMsg)
+      });
+      return { success: false, error: String(errorMsg) };
+    }
+
+    const resJson = await resendRes.json().catch(() => ({})) as any;
+    const providerMessageId = resJson?.id || undefined;
+
+    await writeNotificationLog(env, {
+      eventType: options.eventType,
+      entityId: options.entityId,
+      recipient,
+      status: 'sent',
+      providerMessageId
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Unexpected network error during email notification';
+    await writeNotificationLog(env, {
+      eventType: options.eventType,
+      entityId: options.entityId,
+      status: 'failed',
+      errorCode: 'EXCEPTION',
+      errorMessage: String(errorMsg)
+    });
+    return { success: false, error: String(errorMsg) };
+  }
 }
 
 async function hashPasswordPBKDF2(password: string, salt: string, iterations = PASSWORD_PBKDF2_ITERATIONS): Promise<string> {
@@ -613,6 +887,24 @@ export default {
           'new'
         ).run();
 
+        if (rawType === 'appointment') {
+          ctx.waitUntil(
+            sendStaffNotification(env, {
+              formKey: 'appointmentForm',
+              eventType: 'appointment',
+              entityId: id
+            })
+          );
+        } else {
+          ctx.waitUntil(
+            sendStaffNotification(env, {
+              formKey: 'contactForm',
+              eventType: 'contact',
+              entityId: id
+            })
+          );
+        }
+
         return json({ success: true, message: 'Enquiry received', enquiryId: id }, 201);
       }
 
@@ -688,6 +980,14 @@ export default {
           urgency,
           'new'
         ).run();
+
+        ctx.waitUntil(
+          sendStaffNotification(env, {
+            formKey: 'secondOpinionForm',
+            eventType: 'second_opinion',
+            entityId: id
+          })
+        );
 
         return json({ success: true, message: 'Second opinion request recorded', requestId: id }, 201);
       }
@@ -1805,6 +2105,138 @@ export default {
             if (n) normalized[n.slotKey] = n;
           }
           return json({ success: true, message: 'All slots published', count: slots.results?.length ?? 0, mediaSlots: normalized });
+        }
+
+        // EMAIL NOTIFICATIONS STATUS & LOGS (PHASE 3B)
+        if (pathname === '/api/admin/email-status' && request.method === 'GET') {
+          return json({
+            enabled: env.EMAIL_NOTIFICATIONS_ENABLED === 'true',
+            provider: 'resend',
+            apiKeyConfigured: Boolean(env.RESEND_API_KEY && env.RESEND_API_KEY.trim()),
+            fromAddressConfigured: Boolean(env.NOTIFICATION_FROM_EMAIL && env.NOTIFICATION_FROM_EMAIL.trim()),
+            adminUrlConfigured: Boolean(env.ADMIN_APP_URL && env.ADMIN_APP_URL.trim())
+          });
+        }
+
+        if (pathname === '/api/admin/notification-logs' && request.method === 'GET') {
+          if (!isEnquiryManager) {
+            return json({ error: 'Forbidden: Enquiry Manager or Super Admin role required' }, 403);
+          }
+          const logs = await env.DB.prepare(
+            `SELECT id, channel, provider, event_type, entity_id, recipient, status, provider_message_id, error_code, error_message, created_at, updated_at
+             FROM notification_delivery_logs
+             ORDER BY created_at DESC
+             LIMIT 100`
+          ).all();
+          return json({ success: true, logs: logs.results || [] });
+        }
+
+        if (pathname === '/api/admin/email-test' && request.method === 'POST') {
+          if (!isSuperAdmin) {
+            return json({ error: 'Forbidden: Super Administrator access required' }, 403);
+          }
+          const body = (await request.json().catch(() => ({}))) as any;
+          const formKey = body.formKey;
+          if (!['appointmentForm', 'contactForm', 'secondOpinionForm'].includes(formKey)) {
+            return json({ error: 'Invalid formKey specified' }, 400);
+          }
+
+          const recipient = await getFormNotificationEmail(env, formKey);
+          if (!recipient) {
+            return json({ error: 'No valid notification email configured for this form in CMS settings' }, 400);
+          }
+
+          if (!env.RESEND_API_KEY || !env.RESEND_API_KEY.trim()) {
+            return json({ error: 'RESEND_API_KEY is not configured on the server' }, 400);
+          }
+          if (!env.NOTIFICATION_FROM_EMAIL || !env.NOTIFICATION_FROM_EMAIL.trim()) {
+            return json({ error: 'NOTIFICATION_FROM_EMAIL is not configured on the server' }, 400);
+          }
+
+          const fromAddress = env.NOTIFICATION_FROM_EMAIL.trim();
+          if (!isValidEmailAddress(fromAddress)) {
+            return json({ error: 'Invalid NOTIFICATION_FROM_EMAIL format on the server' }, 400);
+          }
+
+          const testEntityId = `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+          const testEventType = formKey === 'appointmentForm' ? 'appointment' : formKey === 'secondOpinionForm' ? 'second_opinion' : 'contact';
+          const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+          const adminUrl = env.ADMIN_APP_URL ? env.ADMIN_APP_URL.trim() : '';
+
+          const subject = 'Dr. Bhushan Website — Email notification test';
+          const textBody = `Email notification delivery is configured successfully.\n\nTest ID: ${testEntityId}\nTimestamp: ${timestamp}\nForm: ${formKey}\nRecipient: ${recipient}\n\nSign in to the secure admin panel to manage settings.`;
+          const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; background-color: #f8fafc; padding: 24px; margin: 0;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="display: inline-block; padding: 4px 12px; background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+      Configuration Test
+    </div>
+    <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0;">Email notification delivery is configured successfully.</h2>
+    <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px 0;">
+      This is a test notification verifying transactional email delivery from your website to the configured staff inbox.
+    </p>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px;">
+      <div style="margin-bottom: 6px;"><strong style="color: #0f172a;">Form Target:</strong> <code style="font-family: monospace; color: #0f766e;">${escapeHtml(formKey)}</code></div>
+      <div style="margin-bottom: 6px;"><strong style="color: #0f172a;">Recipient:</strong> ${escapeHtml(recipient)}</div>
+      <div><strong style="color: #0f172a;">Timestamp:</strong> ${escapeHtml(timestamp)}</div>
+    </div>
+    ${adminUrl ? `
+    <div style="text-align: left; margin-top: 24px;">
+      <a href="${escapeHtml(adminUrl)}" style="display: inline-block; background: #073F3D; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 10px 20px; border-radius: 10px;">
+        Open Admin Panel &rarr;
+      </a>
+    </div>` : ''}
+  </div>
+</body>
+</html>`;
+
+          const idempotencyKey = `website-notification-test/${testEntityId}`;
+
+          const resendRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.RESEND_API_KEY.trim()}`,
+              'Content-Type': 'application/json',
+              'Idempotency-Key': idempotencyKey
+            },
+            body: JSON.stringify({
+              from: `Dr. Bhushan Website <${fromAddress}>`,
+              to: [recipient],
+              subject,
+              text: textBody,
+              html: htmlBody
+            })
+          });
+
+          if (!resendRes.ok) {
+            const errorJson = await resendRes.json().catch(() => ({}));
+            const statusCode = resendRes.status;
+            const errorMsg = (errorJson as any)?.message || (errorJson as any)?.error || `HTTP ${statusCode}`;
+            await writeNotificationLog(env, {
+              eventType: `test_${testEventType}`,
+              entityId: testEntityId,
+              recipient,
+              status: 'failed',
+              errorCode: String(statusCode),
+              errorMessage: String(errorMsg)
+            });
+            return json({ success: false, error: `Resend delivery failed: ${errorMsg}` }, 400);
+          }
+
+          const resJson = await resendRes.json().catch(() => ({})) as any;
+          const providerMessageId = resJson?.id || undefined;
+
+          await writeNotificationLog(env, {
+            eventType: `test_${testEventType}`,
+            entityId: testEntityId,
+            recipient,
+            status: 'sent',
+            providerMessageId
+          });
+
+          return json({ success: true, message: 'Test notification sent successfully', providerMessageId });
         }
       }
 

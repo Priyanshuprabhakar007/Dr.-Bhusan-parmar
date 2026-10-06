@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { FormBuilderConfig } from '../../types/admin';
+import { api } from '../../lib/api';
 import {
   FileCode,
   Save,
@@ -8,8 +9,20 @@ import {
   AlertCircle,
   Bell,
   Check,
-  Loader2
+  Loader2,
+  Send,
+  Mail,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
+
+interface EmailStatus {
+  enabled: boolean;
+  provider: string;
+  apiKeyConfigured: boolean;
+  fromAddressConfigured: boolean;
+  adminUrlConfigured: boolean;
+}
 
 export const FormBuilderEditor: React.FC = () => {
   const { formBuilderConfig, updateFormBuilderConfig } = useData();
@@ -19,6 +32,24 @@ export const FormBuilderEditor: React.FC = () => {
   const [saveToast, setSaveToast] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    const fetchEmailStatus = async () => {
+      try {
+        const res = await api.get('/api/admin/email-status');
+        if (res.ok && res.data) {
+          setEmailStatus(res.data);
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    };
+    fetchEmailStatus();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +72,42 @@ export const FormBuilderEditor: React.FC = () => {
   };
 
   const fieldsList = currentFormConfig.fields || {};
+
+  const handleSendTest = async () => {
+    setTestResult(null);
+    setIsSendingTest(true);
+    try {
+      const res = await api.post('/api/admin/email-test', {
+        formKey: activeForm
+      });
+      if (res.ok) {
+        setTestResult({
+          success: true,
+          message: 'Test notification sent successfully to ' + currentFormConfig.notificationEmail.trim()
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: res.data?.error || 'Could not send test notification. Please verify server configuration.'
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err?.message || 'Could not send test notification.'
+      });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((currentFormConfig.notificationEmail || '').trim());
+  const isTestReady = Boolean(
+    emailStatus?.enabled &&
+    emailStatus?.apiKeyConfigured &&
+    emailStatus?.fromAddressConfigured &&
+    isEmailValid
+  );
 
   const handleToggleField = (fieldKey: string, keyToToggle: 'required' | 'enabled') => {
     const existingField = fieldsList[fieldKey] || { label: '', placeholder: '', required: false, enabled: true };
@@ -131,7 +198,10 @@ export const FormBuilderEditor: React.FC = () => {
           <button
             key={tab.key}
             type="button"
-            onClick={() => setActiveForm(tab.key as any)}
+            onClick={() => {
+              setActiveForm(tab.key as any);
+              setTestResult(null);
+            }}
             className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeForm === tab.key
                 ? 'border-[#073F3D] text-[#073F3D]'
@@ -143,51 +213,126 @@ export const FormBuilderEditor: React.FC = () => {
         ))}
       </div>
 
-      {/* Form Notification Settings */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center space-x-1.5">
-            <Bell className="w-3.5 h-3.5 text-[#149A96]" />
-            <span>Staff Notification Email (used when email delivery is enabled)</span>
-          </label>
-          <input
-            type="email"
-            value={currentFormConfig.notificationEmail}
-            onChange={e =>
-              setConfigState(prev => ({
-                ...prev,
-                [activeForm]: {
-                  ...prev[activeForm],
-                  notificationEmail: e.target.value
-                }
-              }))
-            }
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-          />
-          <p className="text-[11px] text-slate-400 mt-1">
-            Saving this address does not send email yet.
-          </p>
+      {/* Form Notification & Delivery Status Settings */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center space-x-1.5">
+              <Bell className="w-3.5 h-3.5 text-[#149A96]" />
+              <span>Staff Notification Email (used when email delivery is enabled)</span>
+            </label>
+            <input
+              type="email"
+              value={currentFormConfig.notificationEmail}
+              onChange={e =>
+                setConfigState(prev => ({
+                  ...prev,
+                  [activeForm]: {
+                    ...prev[activeForm],
+                    notificationEmail: e.target.value
+                  }
+                }))
+              }
+              placeholder="e.g. staff@example.com"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Saving this address does not send email yet.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Success Screen Confirmation Text
+            </label>
+            <input
+              type="text"
+              value={currentFormConfig.successMessage}
+              onChange={e =>
+                setConfigState(prev => ({
+                  ...prev,
+                  [activeForm]: {
+                    ...prev[activeForm],
+                    successMessage: e.target.value
+                  }
+                }))
+              }
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Success Screen Confirmation Text
-          </label>
-          <input
-            type="text"
-            value={currentFormConfig.successMessage}
-            onChange={e =>
-              setConfigState(prev => ({
-                ...prev,
-                [activeForm]: {
-                  ...prev[activeForm],
-                  successMessage: e.target.value
-                }
-              }))
-            }
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-          />
+        {/* Email Delivery Provider & Status Summary */}
+        <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <Mail className="w-4 h-4 text-[#073F3D]" />
+              <span className="text-xs font-bold text-slate-900">Transactional Email Delivery:</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                emailStatus?.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-slate-600'
+              }`}>
+                {emailStatus?.enabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <span className="text-xs text-slate-400">•</span>
+              <span className="text-xs text-slate-600 font-medium">Provider: Resend</span>
+            </div>
+            <div className="flex items-center space-x-3 text-[11px] text-slate-500">
+              <span>
+                Configuration:{' '}
+                <strong className={emailStatus?.apiKeyConfigured && emailStatus?.fromAddressConfigured ? 'text-emerald-700' : 'text-amber-700'}>
+                  {emailStatus?.apiKeyConfigured && emailStatus?.fromAddressConfigured ? 'Ready' : 'Incomplete (Requires Server Env)'}
+                </strong>
+              </span>
+              <span>•</span>
+              <span className="text-slate-400">Patient submission success always persists to D1 independently.</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSendTest}
+              disabled={isSendingTest || !isTestReady}
+              title={
+                !emailStatus?.enabled
+                  ? 'Email delivery is currently disabled in server environment'
+                  : !isEmailValid
+                  ? 'Enter a valid staff notification email above first'
+                  : !emailStatus?.apiKeyConfigured || !emailStatus?.fromAddressConfigured
+                  ? 'Server Resend credentials not fully configured'
+                  : 'Send a test notification to verified address'
+              }
+              className="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:border-[#073F3D] hover:text-[#073F3D] text-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isSendingTest ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
+                  <span>Sending Test...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Send Test Notification</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {testResult && (
+          <div className={`p-3 rounded-xl text-xs flex items-center space-x-2 animate-in fade-in ${
+            testResult.success
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border border-rose-200 text-rose-800'
+          }`}>
+            {testResult.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{testResult.message}</span>
+          </div>
+        )}
       </div>
 
       {/* Fields List */}

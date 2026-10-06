@@ -65,6 +65,7 @@ export interface D1DatabaseSchema {
   activity_logs: any[];
   admin_users: any[];
   admin_sessions?: any[];
+  notification_delivery_logs?: any[];
   updated_at: string;
 }
 

@@ -176,8 +176,28 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
     }
 
     setIsSubmitting(true);
+    let requestCreated = false;
     try {
-      // Step 1: Upload attached reports using pre-generated stable requestId
+      // Step 2: Create the D1 parent second-opinion request FIRST
+      requestCreated = await submitSecondOpinion({
+        requestId,
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        cityCountry: formData.cityCountry.trim(),
+        cancerType: formData.cancerType.trim() || defaultCancerType || '',
+        currentDiagnosis: formData.currentDiagnosis.trim(),
+        previousTreatment: formData.previousTreatment.trim(),
+        message: formData.message.trim(),
+        attachedFiles: []
+      });
+
+      if (!requestCreated) {
+        setErrorMessage('Could not submit your second opinion request. Please try again.');
+        return;
+      }
+
+      // Step 3: Upload selected reports using the SAME requestId (parent now exists in D1)
       for (const item of selectedFiles) {
         const formDataPayload = new FormData();
         formDataPayload.append('file', item.file);
@@ -191,40 +211,20 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
         });
 
         if (!uploadRes.ok) {
-          const uploadErr = await uploadRes.json().catch(() => ({}));
-          throw new Error(uploadErr.error || `Failed to upload report ${item.name}`);
+          throw new Error('Upload failed');
         }
       }
 
-      // Step 2: Submit final second opinion record using the same requestId
-      const success = await submitSecondOpinion({
-        requestId,
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        email: formData.email.trim(),
-        cityCountry: formData.cityCountry.trim(),
-        cancerType: formData.cancerType.trim() || defaultCancerType || '',
-        currentDiagnosis: formData.currentDiagnosis.trim(),
-        previousTreatment: formData.previousTreatment.trim(),
-        message: formData.message.trim(),
-        attachedFiles: selectedFiles.map(f => ({
-          id: f.id,
-          name: f.name,
-          category: f.category,
-          size: f.size,
-          type: f.file.type || 'application/pdf',
-          uploadedAt: new Date().toISOString()
-        }))
-      });
-
-      if (!success) {
-        setErrorMessage('Could not submit your second opinion request. Please try again.');
-        return;
-      }
-
+      // Step 4: Show full success once request and all report uploads succeed
       setSubmitSuccess(true);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Could not submit your second opinion request. Please try again.');
+      if (requestCreated) {
+        setErrorMessage(
+          'Your request was received, but one or more reports could not be uploaded. Please retry the report upload or submit the reports separately.'
+        );
+      } else {
+        setErrorMessage('Could not submit your second opinion request. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

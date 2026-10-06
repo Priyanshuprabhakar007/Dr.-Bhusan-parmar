@@ -17,6 +17,13 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuidV4(value: string): boolean {
+  return UUID_V4_REGEX.test(value);
+}
+
 // Ensure public uploads directories exist for simulated Cloudflare R2 public bucket
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -468,10 +475,31 @@ async function startServer() {
         }
       }
 
+      const publicSiteSettings = {
+        ...siteSettings
+      };
+
+      if (siteSettings.formBuilderConfig) {
+        publicSiteSettings.formBuilderConfig = {
+          appointmentForm: {
+            fields: siteSettings.formBuilderConfig?.appointmentForm?.fields || {},
+            successMessage: siteSettings.formBuilderConfig?.appointmentForm?.successMessage || ''
+          },
+          contactForm: {
+            fields: siteSettings.formBuilderConfig?.contactForm?.fields || {},
+            successMessage: siteSettings.formBuilderConfig?.contactForm?.successMessage || ''
+          },
+          secondOpinionForm: {
+            fields: siteSettings.formBuilderConfig?.secondOpinionForm?.fields || {},
+            successMessage: siteSettings.formBuilderConfig?.secondOpinionForm?.successMessage || ''
+          }
+        };
+      }
+
       res.json({
         success: true,
         isPreview,
-        siteSettings,
+        siteSettings: publicSiteSettings,
         doctorProfile,
         heroContent,
         aboutDoctorContent,
@@ -674,11 +702,22 @@ async function startServer() {
   app.post('/api/public/second-opinion', (req, res) => {
     try {
       const body = req.body || {};
+      let id: string;
+      if (body.requestId !== undefined && body.requestId !== null) {
+        const rawReqId = String(body.requestId).trim();
+        if (!isValidUuidV4(rawReqId)) {
+          return res.status(400).json({ error: 'Invalid request ID' });
+        }
+        id = rawReqId;
+      } else {
+        id = crypto.randomUUID();
+      }
+
       const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
       const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
       const email = typeof body.email === 'string' ? body.email.trim() : '';
       const city = typeof (body.city ?? body.cityCountry ?? body.city_country) === 'string' ? (body.city ?? body.cityCountry ?? body.city_country).trim() : '';
-      const country = typeof body.country === 'string' ? body.country.trim() : 'India';
+      const country = typeof body.country === 'string' ? body.country.trim() : '';
       const cancerType = typeof (body.cancerType ?? body.cancer_type) === 'string' ? (body.cancerType ?? body.cancer_type).trim() : '';
       const stage = typeof (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis) === 'string' ? (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis).trim() : '';
       const currentTreatment = typeof (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment) === 'string' ? (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment).trim() : '';
@@ -706,17 +745,17 @@ async function startServer() {
           return res.status(400).json({ error: 'Invalid email address format' });
         }
       }
-      if (city.length > 120) return res.status(400).json({ error: 'City exceeds maximum length of 120 characters' });
+      if (city.length > 150) return res.status(400).json({ error: 'City exceeds maximum length of 150 characters' });
       if (country.length > 100) return res.status(400).json({ error: 'Country exceeds maximum length of 100 characters' });
       if (cancerType.length > 200) return res.status(400).json({ error: 'Cancer type exceeds maximum length of 200 characters' });
-      if (stage.length > 1000) return res.status(400).json({ error: 'Diagnosis/stage details exceed maximum length of 1000 characters' });
-      if (currentTreatment.length > 2000) return res.status(400).json({ error: 'Treatment history exceeds maximum length of 2000 characters' });
+      if (stage.length > 500) return res.status(400).json({ error: 'Diagnosis/stage details exceed maximum length of 500 characters' });
+      if (currentTreatment.length > 3000) return res.status(400).json({ error: 'Treatment history exceeds maximum length of 3000 characters' });
       if (specificQuestions.length > 5000) return res.status(400).json({ error: 'Questions/message exceeds maximum length of 5000 characters' });
+      if (urgency.length > 50) return res.status(400).json({ error: 'Urgency exceeds maximum length of 50 characters' });
 
       const store = getD1Store();
-      const requestId = body.id || body.requestId || `so-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const requestRecord = {
-        id: requestId,
+        id,
         patient_name: patientName,
         phone,
         email,
@@ -732,7 +771,7 @@ async function startServer() {
       };
       store.second_opinion_requests = [requestRecord, ...(store.second_opinion_requests || [])];
       saveD1Store({ second_opinion_requests: store.second_opinion_requests });
-      res.status(201).json({ success: true, message: 'Second opinion request registered', requestId });
+      res.status(201).json({ success: true, message: 'Second opinion request registered', requestId: id });
     } catch (err: any) {
       res.status(500).json({ error: 'Failed to record second opinion request in D1' });
     }
@@ -743,8 +782,26 @@ async function startServer() {
   app.post('/api/public/second-opinion/upload-report', privateUpload.single('file') as any, (req: any, res: any) => {
     try {
       const file = req.file;
+      const rawRequestId = (req.body?.requestId as string) || (req.body?.request_id as string);
+      const fileType = req.body?.fileType || 'biopsy';
+
+      if (!rawRequestId || !rawRequestId.trim()) {
+        return res.status(400).json({ error: 'Request ID required' });
+      }
+
+      const requestId = rawRequestId.trim();
+      if (!isValidUuidV4(requestId)) {
+        return res.status(400).json({ error: 'Invalid request ID' });
+      }
+
       if (!file) {
         return res.status(400).json({ error: 'No report file provided' });
+      }
+
+      const store = getD1Store();
+      const parent = (store.second_opinion_requests || []).find((r: any) => r.id === requestId);
+      if (!parent) {
+        return res.status(404).json({ error: 'Second opinion request not found' });
       }
 
       const allowedMimes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -755,12 +812,9 @@ async function startServer() {
         return res.status(400).json({ error: 'File size exceeds 15MB limit.' });
       }
 
-      const requestId = req.body.requestId || req.body.request_id || `req-${Date.now()}`;
-      const fileType = req.body.fileType || 'biopsy';
       const fileId = `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const storageKey = `reports/${requestId}/${file.filename}`;
 
-      const store = getD1Store();
       const fileRecord = {
         id: fileId,
         request_id: requestId,
@@ -776,7 +830,6 @@ async function startServer() {
       store.second_opinion_files = [fileRecord, ...(store.second_opinion_files || [])];
       saveD1Store({ second_opinion_files: store.second_opinion_files });
 
-      // Notice: NO public_url returned for confidential medical files!
       res.status(201).json({
         success: true,
         fileId,
@@ -786,7 +839,7 @@ async function startServer() {
         message: 'Patient medical record securely stored in private R2 bucket'
       });
     } catch (err: any) {
-      res.status(500).json({ error: 'Failed to upload report file to private storage', details: err.message });
+      res.status(500).json({ error: 'Failed to record report in D1' });
     }
   });
 

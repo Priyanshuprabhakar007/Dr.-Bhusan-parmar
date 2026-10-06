@@ -1195,8 +1195,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancer_type: data.cancerType,
         stage: data.currentDiagnosis,
         current_treatment: data.previousTreatment,
-        specific_questions: data.message,
-        fileIds: (data.attachedFiles || []).map((f: any) => f.fileId || f.id)
+        specific_questions: data.message
       });
       if (!res.ok) {
         return false;

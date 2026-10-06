@@ -148,7 +148,7 @@ export const FormBuilderEditor: React.FC = () => {
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center space-x-1.5">
             <Bell className="w-3.5 h-3.5 text-[#149A96]" />
-            <span>Staff Notification Email for Submissions</span>
+            <span>Staff Notification Email (used when email delivery is enabled)</span>
           </label>
           <input
             type="email"
@@ -164,6 +164,9 @@ export const FormBuilderEditor: React.FC = () => {
             }
             className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
           />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Saving this address does not send email yet.
+          </p>
         </div>
 
         <div>

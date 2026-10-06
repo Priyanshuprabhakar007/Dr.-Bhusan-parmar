@@ -47,6 +47,13 @@ export interface Env {
 
 const PASSWORD_PBKDF2_ITERATIONS = 100000;
 
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuidV4(value: string): boolean {
+  return UUID_V4_REGEX.test(value);
+}
+
 async function hashPasswordPBKDF2(password: string, salt: string, iterations = PASSWORD_PBKDF2_ITERATIONS): Promise<string> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -489,10 +496,31 @@ export default {
         const normalizedNavigation = (navRes.results || []).map(normalizeNavigationItem).sort((a, b) => a.order - b.order);
         const normalizedFooter = normalizeFooterRow(footerRes);
 
+        const publicSiteSettings = {
+          ...siteSettings
+        };
+
+        if (siteSettings.formBuilderConfig) {
+          publicSiteSettings.formBuilderConfig = {
+            appointmentForm: {
+              fields: siteSettings.formBuilderConfig?.appointmentForm?.fields || {},
+              successMessage: siteSettings.formBuilderConfig?.appointmentForm?.successMessage || ''
+            },
+            contactForm: {
+              fields: siteSettings.formBuilderConfig?.contactForm?.fields || {},
+              successMessage: siteSettings.formBuilderConfig?.contactForm?.successMessage || ''
+            },
+            secondOpinionForm: {
+              fields: siteSettings.formBuilderConfig?.secondOpinionForm?.fields || {},
+              successMessage: siteSettings.formBuilderConfig?.secondOpinionForm?.successMessage || ''
+            }
+          };
+        }
+
         return json({
           success: true,
           isPreview: isPreviewRequest,
-          siteSettings,
+          siteSettings: publicSiteSettings,
           doctorProfile,
           heroContent,
           aboutDoctorContent,
@@ -592,11 +620,22 @@ export default {
         if (isRateLimited(clientIp, 10, 600000)) return json({ error: 'Submission limit reached.' }, 429);
         const body = (await request.json().catch(() => ({}))) as any;
 
+        let id: string;
+        if (body.requestId !== undefined && body.requestId !== null) {
+          const rawReqId = String(body.requestId).trim();
+          if (!isValidUuidV4(rawReqId)) {
+            return json({ error: 'Invalid request ID' }, 400);
+          }
+          id = rawReqId;
+        } else {
+          id = crypto.randomUUID();
+        }
+
         const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
         const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
         const email = typeof body.email === 'string' ? body.email.trim() : '';
         const city = typeof (body.city ?? body.cityCountry ?? body.city_country) === 'string' ? (body.city ?? body.cityCountry ?? body.city_country).trim() : '';
-        const country = typeof body.country === 'string' ? body.country.trim() : 'India';
+        const country = typeof body.country === 'string' ? body.country.trim() : '';
         const cancerType = typeof (body.cancerType ?? body.cancer_type) === 'string' ? (body.cancerType ?? body.cancer_type).trim() : '';
         const stage = typeof (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis) === 'string' ? (body.stage ?? body.currentDiagnosis ?? body.current_diagnosis).trim() : '';
         const currentTreatment = typeof (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment) === 'string' ? (body.currentTreatment ?? body.current_treatment ?? body.previousTreatment ?? body.previous_treatment).trim() : '';
@@ -624,14 +663,14 @@ export default {
             return json({ error: 'Invalid email address format' }, 400);
           }
         }
-        if (city.length > 120) return json({ error: 'City exceeds maximum length of 120 characters' }, 400);
+        if (city.length > 150) return json({ error: 'City exceeds maximum length of 150 characters' }, 400);
         if (country.length > 100) return json({ error: 'Country exceeds maximum length of 100 characters' }, 400);
         if (cancerType.length > 200) return json({ error: 'Cancer type exceeds maximum length of 200 characters' }, 400);
-        if (stage.length > 1000) return json({ error: 'Diagnosis/stage details exceed maximum length of 1000 characters' }, 400);
-        if (currentTreatment.length > 2000) return json({ error: 'Treatment history exceeds maximum length of 2000 characters' }, 400);
+        if (stage.length > 500) return json({ error: 'Diagnosis/stage details exceed maximum length of 500 characters' }, 400);
+        if (currentTreatment.length > 3000) return json({ error: 'Treatment history exceeds maximum length of 3000 characters' }, 400);
         if (specificQuestions.length > 5000) return json({ error: 'Questions/message exceeds maximum length of 5000 characters' }, 400);
+        if (urgency.length > 50) return json({ error: 'Urgency exceeds maximum length of 50 characters' }, 400);
 
-        const id = body.id || body.requestId || `so-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await env.DB.prepare(
           `INSERT INTO second_opinion_requests (id, patient_name, phone, email, city, country, cancer_type, stage, current_treatment, specific_questions, urgency, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -650,12 +689,6 @@ export default {
           'new'
         ).run();
 
-        if (Array.isArray(body.fileIds) && body.fileIds.length > 0) {
-          for (const fileId of body.fileIds) {
-            await env.DB.prepare('UPDATE second_opinion_files SET request_id = ? WHERE id = ?').bind(id, fileId).run();
-          }
-        }
-
         return json({ success: true, message: 'Second opinion request recorded', requestId: id }, 201);
       }
 
@@ -663,10 +696,25 @@ export default {
         if (isRateLimited(clientIp, 20, 600000)) return json({ error: 'Upload rate limit exceeded.' }, 429);
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
-        const requestId = (formData.get('requestId') as string) || (formData.get('request_id') as string) || `req-${Date.now()}`;
+        const rawRequestId = (formData.get('requestId') as string) || (formData.get('request_id') as string);
         const fileType = (formData.get('fileType') as string) || 'biopsy';
 
+        if (!rawRequestId || !rawRequestId.trim()) {
+          return json({ error: 'Request ID required' }, 400);
+        }
+
+        const requestId = rawRequestId.trim();
+        if (!isValidUuidV4(requestId)) {
+          return json({ error: 'Invalid request ID' }, 400);
+        }
+
         if (!file) return json({ error: 'No file provided' }, 400);
+
+        // Verify parent request exists
+        const parent = await env.DB.prepare('SELECT id FROM second_opinion_requests WHERE id = ?').bind(requestId).first<{ id: string }>();
+        if (!parent) {
+          return json({ error: 'Second opinion request not found' }, 404);
+        }
 
         const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (!allowedTypes.includes(file.type)) return json({ error: 'Unsupported file format.' }, 400);

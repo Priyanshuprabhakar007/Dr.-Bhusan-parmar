@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { getMediaSlotDefinition } from '../../data/mediaSlotRegistry';
 
@@ -31,6 +31,10 @@ export const CmsImageSlot: React.FC<CmsImageSlotProps> = ({
   const fallback = fallbackUrl || slotDef?.defaultFallbackUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=80';
 
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [resolvedUrl]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     setHasError(true);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getMediaUrl } from '../../lib/cloudflareMedia';
 
 export interface CmsImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -47,6 +47,10 @@ export const CmsImage: React.FC<CmsImageProps> = ({
   const [hasError, setHasError] = useState(false);
 
   const resolvedUrl = resolveTargetUrl(src, mediaId, storageKey);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [resolvedUrl]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     setHasError(true);

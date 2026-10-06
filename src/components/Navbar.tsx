@@ -37,20 +37,34 @@ export const Navbar: React.FC = () => {
       .sort((a, b) => a.order - b.order);
   }, [navigationMenu]);
 
+  const homeLinkId = useMemo(() => {
+    return (
+      navLinks.find(link => link.url === '#home' || link.url === '/')?.id ||
+      navLinks[0]?.id ||
+      ''
+    );
+  }, [navLinks]);
+
   // Helper to determine active nav from pathname
   const getNavFromPathname = (pathname: string): string => {
-    // Basic mapping based on URL. For exact mapping, one might use the navigationMenu data.
+    if (pathname === '/' || pathname === '') {
+      return homeLinkId;
+    }
     const match = navLinks.find(link => link.url !== '/' && pathname.startsWith(link.url));
-    return match ? match.id : 'home';
+    return match ? match.id : homeLinkId;
   };
 
   // Sync activeNav with location pathname when on subpages
   useEffect(() => {
-    const matched = getNavFromPathname(location.pathname);
-    if (location.pathname !== '/') {
+    if (location.pathname === '/') {
+      if (homeLinkId && (activeNav === 'home' || !navLinks.some(l => l.id === activeNav))) {
+        setActiveNav(homeLinkId);
+      }
+    } else {
+      const matched = getNavFromPathname(location.pathname);
       setActiveNav(matched);
     }
-  }, [location.pathname, navLinks]);
+  }, [location.pathname, navLinks, homeLinkId]);
 
   // Measure capsule position relative ONLY to desktop nav container
   const updateCapsulePosition = (key: string) => {
@@ -72,7 +86,9 @@ export const Navbar: React.FC = () => {
 
   // Re-measure position whenever activeNav or pathname changes
   useLayoutEffect(() => {
-    updateCapsulePosition(activeNav);
+    if (activeNav) {
+      updateCapsulePosition(activeNav);
+    }
   }, [activeNav, location.pathname, navLinks]);
 
   useEffect(() => {
@@ -165,7 +181,8 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const cleanPhone = (practiceLocation?.phonePrimary || '+91 98765 43210').replace(/[^\d+]/g, '');
+  const phone = practiceLocation?.phonePrimary?.trim() || '';
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
 
   return (
     <div className="relative w-full h-[70px] bg-white">
@@ -174,7 +191,7 @@ export const Navbar: React.FC = () => {
         {/* LEFT: Doctor Identity Block */}
         <button
           onClick={() => {
-            setActiveNav('home');
+            if (homeLinkId) setActiveNav(homeLinkId);
             if (location.pathname !== '/') {
               navigate('/');
             } else {
@@ -241,18 +258,20 @@ export const Navbar: React.FC = () => {
 
         {/* RIGHT: Phone + Book Appointment Button */}
         <div className="hidden sm:flex items-center justify-end space-x-3 sm:space-x-4 shrink-0">
-          <a
-            href={`tel:${cleanPhone}`}
-            className="flex items-center space-x-2 text-xs font-semibold text-slate-700 hover:text-[#073F3D] transition-colors"
-            title="Call for appointments"
-          >
-            <div className="w-8 h-8 rounded-full bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-800">
-              <Phone className="w-3.5 h-3.5" />
-            </div>
-            <span className="hidden xl:inline tracking-tight font-medium text-slate-600">
-              {practiceLocation.phonePrimary}
-            </span>
-          </a>
+          {phone && (
+            <a
+              href={`tel:${cleanPhone}`}
+              className="flex items-center space-x-2 text-xs font-semibold text-slate-700 hover:text-[#073F3D] transition-colors"
+              title="Call for appointments"
+            >
+              <div className="w-8 h-8 rounded-full bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-800">
+                <Phone className="w-3.5 h-3.5" />
+              </div>
+              <span className="hidden 2xl:inline whitespace-nowrap tracking-tight font-medium text-slate-600">
+                {phone}
+              </span>
+            </a>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.01, y: -1 }}
@@ -302,13 +321,15 @@ export const Navbar: React.FC = () => {
             );
           })}
           <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
-            <a
-              href={`tel:${cleanPhone}`}
-              className="text-xs font-semibold text-teal-800 flex items-center space-x-1.5"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>{practiceLocation.phonePrimary}</span>
-            </a>
+            {phone && (
+              <a
+                href={`tel:${cleanPhone}`}
+                className="text-xs font-semibold text-teal-800 flex items-center space-x-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>{phone}</span>
+              </a>
+            )}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);

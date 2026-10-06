@@ -8,6 +8,7 @@ import { IntroSection } from './components/IntroSection';
 import { AboutSection } from './components/AboutSection';
 import { HowCanWeHelp } from './components/HowCanWeHelp';
 import { CancersSection } from './components/CancersSection';
+import { BodyAreaExplorer } from './components/BodyAreaExplorer';
 import { TreatmentsSection } from './components/TreatmentsSection';
 import { OversizedScrollTypography } from './components/OversizedScrollTypography';
 import { JourneySection } from './components/JourneySection';
@@ -59,6 +60,7 @@ const HomePage = () => {
       <AboutSection />
       <HowCanWeHelp />
       <CancersSection />
+      <BodyAreaExplorer />
       <TreatmentsSection />
       <OversizedScrollTypography phrase="Precision Oncology." tagline="Dedicated to individualized biomarker profiling and targeted cancer care" />
       <JourneySection />

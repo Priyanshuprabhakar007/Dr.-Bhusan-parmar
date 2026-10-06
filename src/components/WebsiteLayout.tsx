@@ -13,10 +13,27 @@ export const WebsiteLayout: React.FC = () => {
   const [headerHeight, setHeaderHeight] = useState(70);
 
   useEffect(() => {
+    const updateHeight = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
+      }
+    };
+
+    updateHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+
     if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
+      resizeObserver.observe(headerRef.current);
     }
-  }, []);
+
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [siteSettings]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FCFDFE] text-slate-900 selection:bg-teal-800 selection:text-white font-sans antialiased">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getMediaUrl } from '../../lib/cloudflareMedia';
 
 export interface CmsImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -44,22 +44,12 @@ export const CmsImage: React.FC<CmsImageProps> = ({
     return resolved && resolved.trim() ? resolved.trim() : fallbackSrc;
   };
 
-  const [currentSrc, setCurrentSrc] = useState<string>(() =>
-    resolveTargetUrl(src, mediaId, storageKey)
-  );
   const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    const nextUrl = resolveTargetUrl(src, mediaId, storageKey);
-    setCurrentSrc(nextUrl);
-    setHasError(false);
-  }, [src, mediaId, storageKey, fallbackSrc, mediaAssets]);
+  const resolvedUrl = resolveTargetUrl(src, mediaId, storageKey);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    if (!hasError && currentSrc !== fallbackSrc) {
-      setHasError(true);
-      setCurrentSrc(fallbackSrc);
-    }
+    setHasError(true);
     if (onError) {
       onError(e);
     }
@@ -71,12 +61,7 @@ export const CmsImage: React.FC<CmsImageProps> = ({
     ...(aspectRatio ? { aspectRatio } : {})
   };
 
-  const safeSrc =
-    currentSrc && currentSrc.trim()
-      ? currentSrc.trim()
-      : fallbackSrc && fallbackSrc.trim()
-      ? fallbackSrc.trim()
-      : DEFAULT_FALLBACK_IMAGE;
+  const safeSrc = hasError || !resolvedUrl ? fallbackSrc : resolvedUrl;
 
   return (
     <img

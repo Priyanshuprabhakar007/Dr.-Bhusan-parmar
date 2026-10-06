@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Phone, Menu, X } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -31,9 +31,11 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navLinks = (Array.isArray(navigationMenu) ? navigationMenu : [])
-    .filter(item => item.isVisible !== false)
-    .sort((a, b) => a.order - b.order);
+  const navLinks = useMemo(() => {
+    return (Array.isArray(navigationMenu) ? navigationMenu : [])
+      .filter(item => item.isVisible !== false)
+      .sort((a, b) => a.order - b.order);
+  }, [navigationMenu]);
 
   // Helper to determine active nav from pathname
   const getNavFromPathname = (pathname: string): string => {
@@ -48,7 +50,7 @@ export const Navbar: React.FC = () => {
     if (location.pathname !== '/') {
       setActiveNav(matched);
     }
-  }, [location.pathname]);
+  }, [location.pathname, navLinks]);
 
   // Measure capsule position relative ONLY to desktop nav container
   const updateCapsulePosition = (key: string) => {
@@ -81,15 +83,8 @@ export const Navbar: React.FC = () => {
       document.fonts.ready.then(() => updateCapsulePosition(activeNav));
     }
 
-    let observer: ResizeObserver | null = null;
-    if (navContainerRef.current) {
-      observer = new ResizeObserver(() => updateCapsulePosition(activeNav));
-      observer.observe(navContainerRef.current);
-    }
-
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (observer) observer.disconnect();
     };
   }, [activeNav, location.pathname, navLinks]);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { getMediaSlotDefinition } from '../../data/mediaSlotRegistry';
 
@@ -28,23 +28,12 @@ export const CmsImageSlot: React.FC<CmsImageSlotProps> = ({
   const slotDef = getMediaSlotDefinition(slotKey);
 
   const resolvedUrl = getSlotMediaUrl(slotKey, fallbackUrl || slotDef?.defaultFallbackUrl);
+  const fallback = fallbackUrl || slotDef?.defaultFallbackUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=80';
 
-  const [currentSrc, setCurrentSrc] = useState<string>(resolvedUrl);
   const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    setCurrentSrc(resolvedUrl);
-    setHasError(false);
-  }, [resolvedUrl]);
-
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    if (!hasError) {
-      setHasError(true);
-      const fallback = fallbackUrl || slotDef?.defaultFallbackUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=80';
-      if (currentSrc !== fallback) {
-        setCurrentSrc(fallback);
-      }
-    }
+    setHasError(true);
     if (onError) {
       onError(e);
     }
@@ -55,6 +44,8 @@ export const CmsImageSlot: React.FC<CmsImageSlotProps> = ({
     ...(focalPoint ? { objectPosition: focalPoint } : {}),
     ...(aspectRatio ? { aspectRatio } : {})
   };
+
+  const currentSrc = hasError || !resolvedUrl ? fallback : resolvedUrl;
 
   return (
     <img

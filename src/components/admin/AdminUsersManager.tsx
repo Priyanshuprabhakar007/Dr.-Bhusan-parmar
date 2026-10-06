@@ -278,7 +278,7 @@ export const AdminUsersManager: React.FC = () => {
                   required
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="staff@oncology.care"
+                  placeholder="staff@example.com"
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm"
                 />
               </div>

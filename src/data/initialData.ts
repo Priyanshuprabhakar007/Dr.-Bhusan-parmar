@@ -20,38 +20,25 @@ export const initialDoctorProfile: DoctorProfile = {
   heroSubheadline:
     'Advanced medical oncology care for solid tumors and blood cancers with personalized treatment planning using modern systemic therapies, targeted drugs, and immunotherapy.',
   bioSummary:
-    'Dr. Bhushan Parmar is a distinguished Senior Consultant in Medical Oncology with over a decade of dedicated clinical experience in diagnosing and treating solid tumors and hematological malignancies. With advanced sub-specialty training from premier oncology institutes including PGIMER Chandigarh and Rajiv Gandhi Cancer Institute & Research Centre, Delhi, he integrates genomic profiling, precision systemic therapies, and empathetic patient counseling.',
+    'Dr. Bhushan Parmar is a Senior Consultant in Medical Oncology with 10+ years of oncology experience. His training includes DrNB in Medical Oncology, Senior Residency at PGIMER, and MD in Clinical Oncology & Radiation Therapy.',
   fullBio: [
-    'Dr. Bhushan Parmar completed his MBBS from Indira Gandhi Government Medical College, Shimla, followed by his MD in Clinical Oncology & Radiation Therapy from the Regional Cancer Centre, IGMC Shimla. He subsequently pursued an intensive Senior Residency in Oncology at the prestigious Postgraduate Institute of Medical Education and Research (PGIMER), Chandigarh, gaining vast expertise in high-volume tertiary cancer care.',
-    'To achieve the highest tier of super-specialization, Dr. Parmar attained his DrNB in Medical Oncology from the acclaimed Rajiv Gandhi Cancer Institute & Research Centre, Delhi. Throughout his clinical journey spanning 10+ years, he has led multidisciplinary tumor boards and formulated individualized systemic chemotherapy, targeted therapy, and immunotherapy protocols.',
-    'His clinical philosophy centers on the conviction that no two cancers—and no two patients—are identical. Rather than applying a one-size-fits-all regimen, Dr. Parmar combines rigorous clinical diagnostics with tumor molecular profiling to recommend therapies tailored to disease biology, functional status, and personal values.',
-    'A steadfast proponent of responsible oncological communication, he takes the time to thoroughly explain diagnosis, realistic therapeutic goals, potential treatment toxicities, and supportive measures with patients and their families.'
+    'Dr. Bhushan Parmar is a Senior Consultant in Medical Oncology with 10+ years of dedicated experience across premier clinical institutions.',
+    'His clinical training includes DrNB in Medical Oncology, Senior Residency in Oncology at the Postgraduate Institute of Medical Education and Research (PGIMER), Chandigarh, and MD in Clinical Oncology & Radiation Therapy.',
+    'He specializes in precision oncology, biomarker-guided therapies, systemic chemotherapy, targeted therapy, and immunotherapy for solid tumors and hematological malignancies.'
   ],
   photoUrl: '', // Can be uploaded or replaced in Admin Panel
   qualifications: [
     {
-      degree: 'MBBS',
-      institution: 'Indira Gandhi Government Medical College, Shimla',
-      period: 'Graduation',
-      description: 'Foundational clinical training and comprehensive medical education with distinction.'
-    },
-    {
       degree: 'MD – Clinical Oncology & Radiation Therapy',
-      institution: 'Regional Cancer Centre, IGMC Shimla',
-      period: 'Postgraduate',
-      description: 'Specialized clinical training in oncology principles, tumor biology, systemic therapeutics, and radiobiology.'
+      institution: ''
     },
     {
-      degree: 'Senior Residency in Oncology',
-      institution: 'PGIMER Chandigarh',
-      period: 'Super-Specialty Residency',
-      description: 'Extensive clinical tenure at one of Northern India’s premier tertiary medical research centers, managing complex solid tumors and oncological emergencies.'
+      degree: 'Senior Residency – Oncology',
+      institution: 'PGIMER'
     },
     {
       degree: 'DrNB – Medical Oncology',
-      institution: 'Rajiv Gandhi Cancer Institute & Research Centre, Delhi',
-      period: 'Super-Specialty Doctorate',
-      description: 'Advanced fellowship and super-speciality accreditation focusing on precision oncology, targeted inhibitors, immunotherapy, and blood malignancies.'
+      institution: ''
     }
   ],
   coreExpertise: [
@@ -61,37 +48,28 @@ export const initialDoctorProfile: DoctorProfile = {
     'Immunotherapy & Checkpoint Inhibitors',
     'Precision Oncology & Molecular Diagnostics',
     'Solid Tumor Comprehensive Care',
-    'Lymphomas (Hodgkin & Non-Hodgkin)',
-    'Multiple Myeloma & Plasma Cell Disorders',
-    'Blood Malignancies (Leukemias, MDS)',
-    'Evidence-Based Cancer Screening',
-    'Management of Oncological Emergencies'
+    'Hematological Malignancies (Lymphomas, Myeloma, Leukemias)',
+    'Supportive Care & Patient Counseling'
   ],
-  memberships: [
-    'European Society for Medical Oncology (ESMO)',
-    'American Society of Clinical Oncology (ASCO)',
-    'Indian Society of Medical & Paediatric Oncology (ISMPO)',
-    'Association of Physicians of India (API)'
-  ]
+  memberships: []
 };
 
 export const initialPracticeLocation: PracticeLocation = {
-  hospitalName: 'Max Super Speciality Hospital / Fortis Cancer Institute',
-  department: 'Department of Medical Oncology & Onco Sciences',
-  addressLine1: 'Phase 6, Sector 56 (Near Civil Hospital)',
-  addressLine2: 'SAS Nagar (Mohali), Punjab',
-  city: 'Mohali',
-  state: 'Punjab',
-  pincode: '160055',
-  consultationTimings: 'Monday to Saturday: 10:00 AM – 4:00 PM (By Prior Appointment)',
-  daysAvailable: 'Monday – Saturday',
+  hospitalName: '',
+  department: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  pincode: '',
+  consultationTimings: '',
+  daysAvailable: '',
   phonePrimary: '',
   phoneSecondary: '',
   whatsappNumber: '',
   emailContact: '',
-  googleMapsEmbedUrl:
-    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d109741.02092147314!2d76.67137812975253!3d30.735062635905103!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390fe451d8be8d05%3A0x6a2c262c58a69d12!2sMohali%2C%20Punjab!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin',
-  googleMapsDirectionsUrl: 'https://maps.google.com/?q=Mohali+Punjab'
+  googleMapsEmbedUrl: '',
+  googleMapsDirectionsUrl: ''
 };
 
 export const initialTreatments: Treatment[] = [
@@ -863,388 +841,8 @@ export const initialBlogPosts: BlogPost[] = [
   }
 ];
 
-export const initialFAQs: FAQItem[] = [
-  {
-    id: 'faq-1',
-    question: 'What should I bring to my first oncology consultation?',
-    answer:
-      'Please bring all relevant medical records to ensure an exhaustive evaluation: (1) All histopathology slides, tissue blocks, and biopsy reports with immunohistochemistry (IHC) markers; (2) Cross-sectional radiological imaging reports and original digital CD discs (PET-CT, CT, or MRI); (3) Complete blood counts (CBC), liver and kidney function tests; (4) Detailed surgical or prior chemotherapy discharge summaries; and (5) A list of all current medications.',
-    category: 'Preparation'
-  },
-  {
-    id: 'faq-2',
-    question: 'When should a cancer patient seek a second opinion?',
-    answer:
-      'Seeking a second opinion is standard medical practice and advisable: (1) Following a newly confirmed cancer diagnosis before beginning invasive treatment; (2) When high-risk surgery or intensive chemotherapy is recommended, to evaluate if targeted or immunotherapy alternatives exist; (3) When the tumor is rare, aggressive, or has recurred; or (4) If you wish to verify that the staging and diagnostic tests meet current international guidelines.',
-    category: 'Second Opinion'
-  },
-  {
-    id: 'faq-3',
-    question: 'What is the difference between chemotherapy, immunotherapy, and targeted therapy?',
-    answer:
-      'Chemotherapy uses systemic medications to destroy rapidly dividing cells throughout the body. Targeted therapy uses precision molecules or oral kinase inhibitors designed to block specific genetic alterations and abnormal proteins driving the tumor. Immunotherapy activates the patient’s own immune system (releasing immune checkpoints like PD-1/PD-L1) to recognize, attack, and eliminate cancer cells with long-term memory.',
-    category: 'Treatments'
-  },
-  {
-    id: 'faq-4',
-    question: 'How is the cancer treatment plan decided?',
-    answer:
-      'Dr. Bhushan Parmar designs every treatment plan through an individualized, evidence-based approach integrating: (1) Anatomic cancer type and TNM clinical staging; (2) Histopathology and molecular biomarker status (e.g., EGFR, ALK, HER2, PD-L1, BRCA); (3) Overall patient health, age, and organ function performance scores; and (4) International NCCN and ESMO consensus guidelines.',
-    category: 'Treatment Planning'
-  },
-  {
-    id: 'faq-5',
-    question: 'What are the side effects of chemotherapy, and how are they managed?',
-    answer:
-      'Common side effects include fatigue, temporary hair thinning, nausea, mild appetite reduction, and temporary dips in white blood cells. Modern oncology has revolutionized supportive care: Dr. Parmar uses advanced antiemetics (neurokinin-1 inhibitors, 5-HT3 antagonists), proactive hydration, protective premedications, and G-CSF growth factors to prevent and manage these side effects so most patients undergo therapy with minimal disruption to daily life.',
-    category: 'Side Effects'
-  },
-  {
-    id: 'faq-6',
-    question: 'Is precision oncology suitable for all cancer types?',
-    answer:
-      'Precision oncology is suitable for any cancer where actionable genomic or molecular alterations can be detected. It is most commonly applied in non-small cell lung cancer, colorectal cancer, breast cancer, ovarian cancer, prostate cancer, melanoma, gastrointestinal stromal tumors (GIST), and hematologic malignancies. Next-Generation Sequencing (NGS) is performed to identify whether an actionable mutation exists.',
-    category: 'Precision Oncology'
-  },
-  {
-    id: 'faq-7',
-    question: 'Can I consult Dr. Bhushan Parmar online?',
-    answer:
-      'Yes. Remote virtual consultations and tele-second-opinions are available for patients residing outside Mohali, outstation patients across North India, and international families. You can upload digital biopsy reports and scan reports securely through the second opinion portal to receive an expert medical oncology assessment.',
-    category: 'Consultation'
-  },
-  {
-    id: 'faq-8',
-    question: 'Where does Dr. Bhushan Parmar practice, and how can I book an appointment?',
-    answer:
-      'Dr. Bhushan Parmar consults in Mohali (SAS Nagar), Punjab. In-person outpatient consultations take place Monday through Saturday between 10:00 AM and 4:00 PM. You can easily schedule an appointment via our online booking form on this website, call the OPD desk directly at +91 98765 43210, or message our oncology clinical coordination desk via WhatsApp.',
-    category: 'Appointment'
-  }
-];
+export const initialFAQs: FAQItem[] = [];
 
-export const initialTestimonials: Testimonial[] = [
-  {
-    id: 'review-1',
-    patientName: 'Gurpreet Singh',
-    source: 'Google Review',
-    rating: 5,
-    date: '3 months ago',
-    condition: 'Lung Cancer Care',
-    reviewText:
-      'Dr. Bhushan Parmar was a beacon of clarity and compassion for our family when my father was diagnosed with advanced lung cancer. He conducted thorough molecular testing and explained targeted therapy options clearly without making false promises. My father has tolerated treatment remarkably well under his care.',
-    verified: true
-  },
-  {
-    id: 'review-2',
-    patientName: 'Meenakshi Sharma',
-    source: 'Google Review',
-    rating: 5,
-    date: '5 months ago',
-    condition: 'Breast Cancer Systemic Therapy',
-    reviewText:
-      'Finding a doctor who listens patiently to all your fears is rare. Dr. Parmar took the time to explain the rationale for neoadjuvant chemotherapy and supported me at every step. His calm demeanor and scientific approach gave me immense courage throughout.',
-    verified: true
-  },
-  {
-    id: 'review-3',
-    patientName: 'Col. R. K. Verma (Retd.)',
-    source: 'Google Review',
-    rating: 5,
-    date: '7 months ago',
-    condition: 'Multiple Myeloma Management',
-    reviewText:
-      'I sought a second opinion with Dr. Bhushan Parmar for my brother’s multiple myeloma. His depth of knowledge in hematologic malignancies and novel triplet regimens was immediately apparent. He reviewed every bone marrow report with meticulous attention.',
-    verified: true
-  },
-  {
-    id: 'review-4',
-    patientName: 'Sunita Aggarwal',
-    source: 'Google Review',
-    rating: 5,
-    date: '1 year ago',
-    condition: 'Lymphoma Treatment',
-    reviewText:
-      'Dr. Parmar’s prompt response and meticulous handling of my lymphoma treatment in Mohali ensured zero delays. He managed chemotherapy side effects with proactive supportive medicines so I experienced minimal nausea. Truly a dedicated medical oncologist.',
-    verified: true
-  }
-];
+export const initialTestimonials: Testimonial[] = [];
 
-export const localSeoPages: LocalSeoPageData[] = [
-  {
-    slug: 'medical-oncologist-in-mohali',
-    title: 'Medical Oncologist in Mohali | Dr. Bhushan Parmar',
-    h1: 'Senior Consultant Medical Oncologist in Mohali',
-    metaDescription:
-      'Consult Dr. Bhushan Parmar, experienced Senior Medical Oncologist in Mohali. 10+ years expertise in systemic chemotherapy, immunotherapy, targeted therapy & solid tumors.',
-    intro:
-      'Patients and families seeking trusted, evidence-based cancer consultation in Mohali and the greater Tricity region can consult Dr. Bhushan Parmar. With advanced training from PGIMER Chandigarh and RGCI Delhi, Dr. Parmar provides world-class systemic cancer care.',
-    whyChooseDrBhushan: [
-      '10+ years dedicated clinical experience in medical and hematologic oncology',
-      'Super-specialist training at premier national cancer institutes (DrNB Medical Oncology, PGIMER Senior Residency)',
-      'Direct focus on precision medicine and genomic biomarker-guided therapy',
-      'Compassionate, patient-centered communication with zero false promises'
-    ],
-    servicesOffered: [
-      'Comprehensive Medical Oncology Consultations',
-      'Daycare Chemotherapy Protocols with Modern Antiemetic Support',
-      'Immunotherapy Administration & Immune Adverse Event Management',
-      'Oral Targeted Therapy & Molecular TKI Monitoring',
-      'Cancer Second Opinions with Thorough Report Audit'
-    ],
-    clinicalFocus:
-      'Dedicated to elevating oncology standards in Mohali through personalized systemic protocols tailored to each patient’s unique disease biology.'
-  },
-  {
-    slug: 'cancer-specialist-in-mohali',
-    title: 'Cancer Specialist in Mohali | Dr. Bhushan Parmar',
-    h1: 'Comprehensive Cancer Care Specialist in Mohali',
-    metaDescription:
-      'Looking for a compassionate cancer specialist in Mohali? Dr. Bhushan Parmar offers expert diagnosis, staging evaluation, and personalized systemic cancer therapy.',
-    intro:
-      'Navigating a cancer diagnosis requires both clinical precision and humane support. In Mohali, Dr. Bhushan Parmar brings extensive experience in guiding patients through diagnosis, second opinions, staging, and systemic treatments.',
-    whyChooseDrBhushan: [
-      'Rigorous multidisciplinary evaluation for solid tumors and blood malignancies',
-      'Transparent treatment counseling explaining goals, benefits, and expected toxicities',
-      'Coordination with surgical and radiation oncology colleagues for unified care',
-      'Convenient consultation timings in Mohali with prompt appointment booking'
-    ],
-    servicesOffered: [
-      'Solid Tumor Systemic Staging & Treatment',
-      'Hematologic Oncology (Lymphoma, Myeloma, Leukemias)',
-      'Supportive & Symptom Control Management',
-      'Hereditary Cancer Risk & Screening Advisory'
-    ],
-    clinicalFocus:
-      'Providing an accessible, reassuring haven for cancer patients across Punjab, Haryana, Himachal Pradesh, and Chandigarh.'
-  },
-  {
-    slug: 'chemotherapy-in-mohali',
-    title: 'Chemotherapy in Mohali | Safe & Modern Daycare Protocols',
-    h1: 'Chemotherapy & Systemic Therapy in Mohali',
-    metaDescription:
-      'Modern, safe chemotherapy administration in Mohali under Dr. Bhushan Parmar. Advanced supportive care, minimal side effects, and evidence-based protocols.',
-    intro:
-      'Chemotherapy administration has advanced significantly with modern premedications, outpatient daycare units, and standardized safety protocols. Dr. Bhushan Parmar oversees chemotherapy regimens in Mohali with continuous monitoring and proactive supportive care.',
-    whyChooseDrBhushan: [
-      'Strict adherence to international NCCN and ESMO chemotherapy guidelines',
-      'Advanced antiemetic regimens to prevent nausea and vomiting',
-      'Routine pre-chemo laboratory verification to ensure safe blood counts and organ safety',
-      'Outpatient daycare setup designed for comfort and rapid return home'
-    ],
-    servicesOffered: [
-      'Neoadjuvant Chemotherapy (pre-surgical tumor downsizing)',
-      'Adjuvant Chemotherapy (post-surgical recurrence reduction)',
-      'Palliative Systemic Chemotherapy for advanced disease symptom control',
-      'Port-a-cath maintenance and peripheral vascular access care'
-    ],
-    clinicalFocus:
-      'Ensuring patients complete their recommended chemotherapy courses with minimal disruption to their daily lives and energy.'
-  },
-  {
-    slug: 'immunotherapy-in-mohali',
-    title: 'Immunotherapy in Mohali | Advanced Cancer Immune Treatment',
-    h1: 'Cancer Immunotherapy in Mohali',
-    metaDescription:
-      'Consult Dr. Bhushan Parmar for advanced cancer immunotherapy in Mohali. Checkpoint inhibitors for lung, kidney, bladder, and melanoma.',
-    intro:
-      'Immunotherapy has revolutionized cancer treatment by reactivating the patient’s own immune defense mechanisms against cancer. Dr. Bhushan Parmar evaluates eligibility for checkpoint inhibitors and manages immunotherapy in Mohali with vigilant safety monitoring.',
-    whyChooseDrBhushan: [
-      'Biomarker assessment (PD-L1 expression, MSI-H/dMMR, TMB) before starting',
-      'Experience in managing complex immune-related adverse events (irAEs)',
-      'Combination therapy regimens (Immunotherapy + Chemotherapy or Targeted Therapy)',
-      'Outpatient infusion monitoring by trained oncology nursing staff'
-    ],
-    servicesOffered: [
-      'Anti-PD-1 / Anti-PD-L1 Checkpoint Inhibitor Infusions',
-      'Combined Immuno-Chemotherapy Protocols for Advanced Lung Cancer',
-      'Maintenance Immunotherapy Protocols',
-      'Comprehensive Immune Toxicity Management'
-    ],
-    clinicalFocus:
-      'Delivering durable biological cancer control while prioritizing patient safety and organ preservation.'
-  },
-  {
-    slug: 'targeted-therapy-in-mohali',
-    title: 'Targeted Therapy in Mohali | Molecular Cancer Care',
-    h1: 'Targeted Cancer Therapy in Mohali',
-    metaDescription:
-      'Precision targeted therapy for cancer in Mohali by Dr. Bhushan Parmar. Genomic mutation profiling (EGFR, ALK, HER2, BRAF) with targeted oral and IV drugs.',
-    intro:
-      'Unlike broad systemic chemotherapy, targeted therapy zeroes in on specific genetic alterations fueling cancer cell growth. Dr. Bhushan Parmar specializes in testing for and managing targeted therapies for patients in Mohali.',
-    whyChooseDrBhushan: [
-      'Routine Next-Generation Sequencing (NGS) to detect actionable mutations',
-      'Expertise in oral Tyrosine Kinase Inhibitors (TKIs) and monoclonal antibodies',
-      'Proactive dermatologic and gastrointestinal side-effect management',
-      'Serial biomarker tracking to detect secondary resistance mechanisms'
-    ],
-    servicesOffered: [
-      'EGFR, ALK, and ROS1 Inhibitors for Non-Small Cell Lung Cancer',
-      'Anti-HER2 Targeted Therapy for Breast and Gastric Cancers',
-      'VEGF and mTOR Inhibitors for Renal and Neuroendocrine Tumors',
-      'PARP Inhibitors for BRCA-mutated Ovarian and Pancreatic Cancers'
-    ],
-    clinicalFocus:
-      'Matching the right drug to the right tumor alteration to maximize clinical response while preserving quality of life.'
-  },
-  {
-    slug: 'breast-cancer-treatment-in-mohali',
-    title: 'Breast Cancer Treatment in Mohali | Dr. Bhushan Parmar',
-    h1: 'Comprehensive Breast Cancer Treatment in Mohali',
-    metaDescription:
-      'Expert medical oncology care for breast cancer in Mohali by Dr. Bhushan Parmar. Chemotherapy, hormone therapy, targeted therapy, and immunotherapy.',
-    intro:
-      'Breast cancer treatment requires an accurate molecular classification—identifying whether a tumor is ER/PR positive, HER2 positive, or Triple-Negative. Dr. Bhushan Parmar provides specialized systemic treatment planning in Mohali.',
-    whyChooseDrBhushan: [
-      'Biomarker-tailored protocols based on ER, PR, HER2, and Ki-67 scoring',
-      'Neoadjuvant therapy protocols that facilitate breast-conserving surgery',
-      'Cardiac-safe administration of Trastuzumab and Pertuzumab',
-      'Endocrine therapy with bone-protective support for hormone-receptor-positive disease'
-    ],
-    servicesOffered: [
-      'Pre-operative (Neoadjuvant) and Post-operative (Adjuvant) Chemotherapy',
-      'Anti-HER2 Targeted Biologic Regimens & Antibody-Drug Conjugates',
-      'CDK4/6 Inhibitors (Palbociclib, Ribociclib, Abemaciclib) for Advanced ER+ Disease',
-      'Immunotherapy for Advanced Triple-Negative Breast Cancer'
-    ],
-    clinicalFocus:
-      'Empowering women with clear, compassionate guidance and evidence-backed therapy from diagnosis to survivorship.'
-  },
-  {
-    slug: 'lung-cancer-treatment-in-mohali',
-    title: 'Lung Cancer Treatment in Mohali | Dr. Bhushan Parmar',
-    h1: 'Advanced Lung Cancer Medical Oncology in Mohali',
-    metaDescription:
-      'Specialized systemic treatment for lung cancer in Mohali. Dr. Bhushan Parmar offers molecular mutation profiling, targeted TKIs, and immunotherapy.',
-    intro:
-      'With the advent of targeted therapies and immunotherapy, the landscape of lung cancer care has dramatically improved. Dr. Bhushan Parmar provides comprehensive medical oncology care for Non-Small Cell and Small Cell Lung Cancers in Mohali.',
-    whyChooseDrBhushan: [
-      'Comprehensive NGS panel testing for actionable driver mutations prior to systemic therapy',
-      'Expert administration of 3rd generation EGFR inhibitors, ALK inhibitors, and immunotherapy',
-      'Coordination of thoracic radiotherapy and minimally invasive diagnostic biopsies',
-      'Pulmonary symptom management and palliative thoracic support'
-    ],
-    servicesOffered: [
-      'Targeted Oral Therapy for EGFR, ALK, ROS1, BRAF, and MET alterations',
-      'First-line and Maintenance Immunotherapy for Advanced NSCLC',
-      'Chemo-radiation protocols for locally advanced disease',
-      'Pleural effusion management and respiratory supportive care'
-    ],
-    clinicalFocus:
-      'Providing prompt, biomarker-guided systemic interventions to prolong survival and maintain patient independence.'
-  },
-  {
-    slug: 'blood-cancer-treatment-in-mohali',
-    title: 'Blood Cancer Treatment in Mohali | Hematologic Oncology',
-    h1: 'Blood Cancer & Hematologic Malignancies in Mohali',
-    metaDescription:
-      'Consult Senior Medical Oncologist Dr. Bhushan Parmar in Mohali for Lymphomas, Multiple Myeloma, Leukemias, and Myelodysplastic Syndromes.',
-    intro:
-      'Hematologic cancers arise in the bone marrow and lymphatic tissues, requiring prompt specialized diagnostic workup and tailored systemic therapy. Dr. Bhushan Parmar provides dedicated blood cancer care in Mohali.',
-    whyChooseDrBhushan: [
-      'Comprehensive experience managing hematologic malignancies from PGIMER & RGCI',
-      'Close collaboration with hematopathology and flow cytometry laboratories',
-      'Protocols designed to prevent tumor lysis syndrome and severe neutropenic sepsis',
-      'Careful staging using modern PET-CT and bone marrow cytogenetics'
-    ],
-    servicesOffered: [
-      'Diagnosis & Staging of Hodgkin and Non-Hodgkin Lymphomas',
-      'Multi-drug Induction Regimens for Multiple Myeloma',
-      'Targeted BCR-ABL and BTK Inhibitor Therapy for Leukemias',
-      'Transfusion Support and Hematopoietic Growth Factor Therapy'
-    ],
-    clinicalFocus:
-      'Offering rapid, scientifically rigorous evaluation for unexplained cytopenias, lymphadenopathy, and suspected hematologic malignancies.'
-  },
-  {
-    slug: 'lymphoma-treatment-in-mohali',
-    title: 'Lymphoma Treatment in Mohali | Dr. Bhushan Parmar',
-    h1: 'Lymphoma Treatment & Chemotherapy in Mohali',
-    metaDescription:
-      'Experienced lymphoma care in Mohali. Dr. Bhushan Parmar treats Hodgkin & Non-Hodgkin Lymphoma with subtype-specific chemo-immunotherapy.',
-    intro:
-      'Lymphoma encompasses a diverse group of over 70 lymphatic malignancies. An accurate subtype diagnosis and PET-CT response evaluation are central to successful outcomes. In Mohali, Dr. Bhushan Parmar provides tailored lymphoma care.',
-    whyChooseDrBhushan: [
-      'Insistence on excisional lymph node biopsy for definitive immunohistochemistry',
-      'Interim PET-CT guided response-adapted therapy to minimize long-term organ toxicity',
-      'Experience in administering anti-CD20 monoclonal antibody immunotherapy',
-      'Proactive monitoring for secondary infections and organ tolerance'
-    ],
-    servicesOffered: [
-      'R-CHOP and intensified regimens for Diffuse Large B-Cell Lymphoma',
-      'ABVD and escalated BEACOPP regimens for Hodgkin Lymphoma',
-      'Targeted ADCs and oral kinase inhibitors for relapsed lymphoma',
-      'Long-term survivorship and cardiovascular surveillance'
-    ],
-    clinicalFocus:
-      'Guiding lymphoma patients through individualized therapy to achieve durable remission while safeguarding future health.'
-  },
-  {
-    slug: 'multiple-myeloma-treatment-in-mohali',
-    title: 'Multiple Myeloma Treatment in Mohali | Dr. Bhushan Parmar',
-    h1: 'Multiple Myeloma & Plasma Cell Disorder Care in Mohali',
-    metaDescription:
-      'Consult Dr. Bhushan Parmar for modern multiple myeloma management in Mohali. Novel quadruplet regimens, bone protection, and kidney health monitoring.',
-    intro:
-      'Multiple Myeloma requires a multi-faceted approach addressing the clonal plasma cells while protecting the kidneys, bones, and blood counts. Dr. Bhushan Parmar provides advanced medical oncology care for myeloma patients in Mohali.',
-    whyChooseDrBhushan: [
-      'Use of novel triplet and quadruplet regimens (Daratumumab, Bortezomib, Lenalidomide)',
-      'Bone marrow cytogenetics (FISH) to identify high-risk genomic features',
-      'Dedicated nephrology collaboration for myeloma kidney protection',
-      'Bone-modifying agents and fracture prevention protocols'
-    ],
-    servicesOffered: [
-      'Induction Systemic Therapy for Newly Diagnosed Myeloma',
-      'Maintenance Therapy for Sustained Remission',
-      'Management of Relapsed / Refractory Disease',
-      'Intravenous Bisphosphonates & Comprehensive Supportive Oncology'
-    ],
-    clinicalFocus:
-      'Transforming myeloma into a manageable condition through modern, low-toxicity targeted regimens.'
-  },
-  {
-    slug: 'precision-oncology',
-    title: 'Precision Oncology | Genomic & Molecular Cancer Treatment',
-    h1: 'Precision Oncology & Next-Generation Sequencing (NGS)',
-    metaDescription:
-      'Consult Dr. Bhushan Parmar for Precision Oncology. NGS genomic profiling, tumor mutational mapping, and personalized targeted therapies for solid tumors.',
-    intro:
-      'Precision oncology moves beyond anatomical cancer definitions to analyze the precise molecular DNA, RNA, and protein mutations driving a patient’s specific malignancy. Dr. Bhushan Parmar matches genomic alterations with FDA/NCCN-approved targeted therapies.',
-    whyChooseDrBhushan: [
-      'Comprehensive Next-Generation Sequencing (NGS) panels covering 500+ cancer genes',
-      'Liquid biopsy capability when tissue biopsy is inaccessible or exhausted',
-      'Expert interpretation of actionable mutations vs. variants of uncertain significance',
-      'Personalized access to targeted kinase inhibitors and molecular basket protocols'
-    ],
-    servicesOffered: [
-      'Comprehensive Genomic Tumor Tissue Profiling (DNA + RNA)',
-      'Circulating Tumor DNA (ctDNA) Liquid Biopsy',
-      'Microsatellite Instability (MSI) & Tumor Mutational Burden (TMB) Testing',
-      'Targeted Molecular Inhibitor Selection & Longitudinal Response Monitoring'
-    ],
-    clinicalFocus:
-      'Designing individualized therapies based on each tumor’s distinct molecular fingerprint to maximize efficacy and minimize off-target side effects.'
-  },
-  {
-    slug: 'second-opinion-for-cancer',
-    title: 'Second Opinion for Cancer | Expert Oncology Review in Mohali',
-    h1: 'Expert Cancer Second Opinion & Pathology/Scan Audit',
-    metaDescription:
-      'Request an expert cancer second opinion from Senior Medical Oncologist Dr. Bhushan Parmar. Rigorous review of pathology, PET-CT scans, and systemic plans.',
-    intro:
-      'A second opinion in oncology can provide life-changing clarity. Whether confirming an initial diagnosis, re-evaluating staging scans, or discovering newly approved targeted treatments, Dr. Bhushan Parmar offers confidential, thorough second opinion reviews.',
-    whyChooseDrBhushan: [
-      'Independent, evidence-based audit of histopathology, IHC markers, and staging scans',
-      'Guidance on avoiding unnecessary chemotherapy when targeted or observation protocols apply',
-      'Compassionate, unhurried consultations with detailed explanation of all clinical options',
-      'Virtual/remote review available for patients outside Mohali and international seekers'
-    ],
-    servicesOffered: [
-      'Complete Histopathology & IHC Biopsy Report Re-evaluation',
-      'PET-CT and Radiological Scan Review with Multidisciplinary Perspective',
-      'Confirmation or Adjustment of Proposed Systemic Chemotherapy/Immunotherapy',
-      'Written Second Opinion Assessment & Clear Recommendation Roadmap'
-    ],
-    clinicalFocus:
-      'Providing peace of mind, verifying diagnostic accuracy, and ensuring patients receive the most advanced standard of care before initiating therapy.'
-  }
-];
+export const localSeoPages: LocalSeoPageData[] = [];

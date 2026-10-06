@@ -124,20 +124,30 @@ export const LocalSeoSection: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                <div>
-                  <div className="font-bold text-slate-900">{practiceLocation.hospitalName}</div>
-                  <div className="text-slate-500">{practiceLocation.addressLine1}, {practiceLocation.city}</div>
-                  <div className="text-slate-500">Timings: {practiceLocation.consultationTimings}</div>
+              {(practiceLocation?.hospitalName || practiceLocation?.phonePrimary) && (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    {practiceLocation.hospitalName && <div className="font-bold text-slate-900">{practiceLocation.hospitalName}</div>}
+                    {(practiceLocation.addressLine1 || practiceLocation.city) && (
+                      <div className="text-slate-500">
+                        {[practiceLocation.addressLine1, practiceLocation.city].filter(Boolean).join(', ')}
+                      </div>
+                    )}
+                    {practiceLocation.consultationTimings && (
+                      <div className="text-slate-500">Timings: {practiceLocation.consultationTimings}</div>
+                    )}
+                  </div>
+                  {practiceLocation.phonePrimary && (
+                    <a
+                      href={`tel:${practiceLocation.phonePrimary.replace(/[^\d+]/g, '')}`}
+                      className="inline-flex items-center px-3 py-1.5 bg-slate-900 text-white rounded-lg font-semibold"
+                    >
+                      <Phone className="w-3 h-3 mr-1" />
+                      {practiceLocation.phonePrimary}
+                    </a>
+                  )}
                 </div>
-                <a
-                  href={`tel:${(practiceLocation?.phonePrimary || '+91 98765 43210').replace(/[^\d+]/g, '')}`}
-                  className="inline-flex items-center px-3 py-1.5 bg-slate-900 text-white rounded-lg font-semibold"
-                >
-                  <Phone className="w-3 h-3 mr-1" />
-                  {practiceLocation.phonePrimary}
-                </a>
-              </div>
+              )}
             </div>
 
             {/* Footer */}

@@ -512,7 +512,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           setBodyExplorerRegions(normalized);
         }
-        if (data.locations) setLocations(Array.isArray(data.locations) ? data.locations : []);
+        const locs = Array.isArray(data.locations) ? data.locations : [];
+        setLocations(locs);
+        const primary = locs.find((l: any) => Boolean(l.is_primary ?? l.isPrimary)) || locs[0];
+        if (primary) {
+          setPracticeLocation({
+            hospitalName: primary.hospital_name || primary.hospitalName || '',
+            department: primary.department || '',
+            addressLine1: primary.address_line1 || primary.addressLine1 || '',
+            addressLine2: primary.address_line2 || primary.addressLine2 || '',
+            city: primary.city || '',
+            state: primary.state || '',
+            pincode: primary.pincode || '',
+            consultationTimings: primary.opd_timings || primary.consultationTimings || '',
+            daysAvailable: primary.days_available || primary.daysAvailable || '',
+            phonePrimary: primary.phone || primary.phonePrimary || '',
+            phoneSecondary: primary.phone_secondary || primary.phoneSecondary || '',
+            whatsappNumber: primary.whatsapp || primary.whatsappNumber || '',
+            emailContact: primary.email || primary.emailContact || '',
+            googleMapsEmbedUrl: primary.google_maps_embed_url || primary.googleMapsEmbedUrl || '',
+            googleMapsDirectionsUrl: primary.google_maps_url || primary.googleMapsDirectionsUrl || ''
+          });
+        } else {
+          setPracticeLocation(initialPracticeLocation);
+        }
         if (data.blogPosts) setBlogPosts(Array.isArray(data.blogPosts) ? data.blogPosts : []);
         if (data.faqs) setFaqs(Array.isArray(data.faqs) ? data.faqs : []);
         if (data.testimonials) setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
@@ -579,7 +602,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const uniqueEntropy = Math.random().toString(36).substring(2, 9);
     const newLog: ActivityLogItem = {
       id: `log-${Date.now()}-${uniqueEntropy}`,
-      userEmail: currentAdminUser?.email || 'admin@oncology.care',
+      userEmail: currentAdminUser?.email || 'admin',
       userName: currentAdminUser?.name || 'Administrator',
       action,
       entityType,
@@ -1321,6 +1344,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGlobalAnimationSettings(defaultGlobalAnimationSettings);
     setHomepageSections(defaultHomepageSections);
     setLocations([]);
+    setPracticeLocation(initialPracticeLocation);
     setBodyExplorerRegions([]);
     setCancerCategories([]);
     setCancerPages([]);

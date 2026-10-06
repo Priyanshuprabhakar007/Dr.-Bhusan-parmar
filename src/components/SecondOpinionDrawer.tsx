@@ -288,11 +288,17 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
                     Our clinical coordinator will reach out to you within 24–48 hours to discuss review insights and scheduling.
                   </p>
 
-                  <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 text-xs text-slate-700 max-w-md mx-auto text-left space-y-1.5">
-                    <div className="font-semibold text-slate-900">For Urgent Medical Assistance:</div>
-                    <div>Contact OPD Coordinator: <a href={`tel:${practiceLocation.phonePrimary}`} className="font-bold text-teal-700">{practiceLocation.phonePrimary}</a></div>
-                    <div>Location: Paras Hospital, Mohali (Sector 71)</div>
-                  </div>
+                  {(practiceLocation?.phonePrimary || practiceLocation?.hospitalName) && (
+                    <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 text-xs text-slate-700 max-w-md mx-auto text-left space-y-1.5">
+                      <div className="font-semibold text-slate-900">For Urgent Medical Assistance:</div>
+                      {practiceLocation.phonePrimary && (
+                        <div>Contact OPD Coordinator: <a href={`tel:${practiceLocation.phonePrimary.replace(/[^\d+]/g, '')}`} className="font-bold text-teal-700">{practiceLocation.phonePrimary}</a></div>
+                      )}
+                      {practiceLocation.hospitalName && (
+                        <div>Location: {practiceLocation.hospitalName}{practiceLocation.city ? `, ${practiceLocation.city}` : ''}</div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="pt-4 flex justify-center space-x-3">
                     <button

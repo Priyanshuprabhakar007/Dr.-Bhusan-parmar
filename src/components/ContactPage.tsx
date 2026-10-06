@@ -148,15 +148,17 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
                       <span>Get Directions</span>
                       <ExternalLink className="w-3 h-3 ml-0.5" />
                     </a>
-                    <a
-                      href={`https://wa.me/${(loc.whatsappNumber || '919876543210').replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center space-x-1.5 transition-colors"
-                    >
-                      <span>WhatsApp OPD</span>
-                    </a>
+                    {loc.whatsappNumber && (
+                      <a
+                        href={`https://wa.me/${loc.whatsappNumber.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                      >
+                        <span>WhatsApp OPD</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               );
@@ -202,7 +204,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
                         value={formPhone}
                         onChange={(e) => setFormPhone(e.target.value)}
                         className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-teal-600"
-                        placeholder="+91 98765 43210"
+                        placeholder="Enter phone number"
                       />
                     </div>
                     <div>
@@ -266,7 +268,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
               <div className="aspect-[4/3] sm:aspect-[16/11] rounded-2xl overflow-hidden bg-stone-200 relative shadow-inner border border-stone-200">
                 <iframe
                   title={`Map for ${activeLocation.hospitalName}`}
-                  src={activeLocation.googleMapsEmbedUrl && activeLocation.googleMapsEmbedUrl.trim() ? activeLocation.googleMapsEmbedUrl.trim() : 'https://maps.google.com/maps?q=Max+Hospital+Mohali&t=&z=14&ie=UTF8&iwloc=&output=embed'}
+                  src={activeLocation.googleMapsEmbedUrl && activeLocation.googleMapsEmbedUrl.trim() ? activeLocation.googleMapsEmbedUrl.trim() : 'https://maps.google.com/maps?q=Mohali&t=&z=14&ie=UTF8&iwloc=&output=embed'}
                   className="w-full h-full border-0"
                   allowFullScreen={true}
                   loading="lazy"

@@ -108,7 +108,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@oncology.care"
+                  placeholder="admin@example.com"
                   className="block w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#149A96] focus:border-transparent transition-all"
                 />
               </div>
@@ -218,7 +218,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
                 required
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}
-                placeholder="admin@oncology.care"
+                placeholder="admin@example.com"
                 className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#149A96]"
               />
               <div className="flex items-center justify-end space-x-3">

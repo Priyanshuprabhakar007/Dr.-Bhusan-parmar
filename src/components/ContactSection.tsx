@@ -94,7 +94,7 @@ export const ContactSection: React.FC = () => {
             Where to Consult
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
-            Consult Dr. Bhushan Parmar at Paras Hospital, Mohali. Clear OPD timings, direct department desk contact, and appointment scheduling.
+            Consult Dr. Bhushan Parmar for specialized oncology care{practiceLocation.hospitalName ? ` at ${practiceLocation.hospitalName}` : ''}. Clear OPD timings, direct department desk contact, and appointment scheduling.
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export const ContactSection: React.FC = () => {
             <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <iframe
                 title="Dr. Bhushan Parmar Oncology Clinic Location"
-                src={practiceLocation.googleMapsEmbedUrl && practiceLocation.googleMapsEmbedUrl.trim() ? practiceLocation.googleMapsEmbedUrl.trim() : 'https://maps.google.com/maps?q=Max+Hospital+Mohali&t=&z=14&ie=UTF8&iwloc=&output=embed'}
+                src={practiceLocation.googleMapsEmbedUrl && practiceLocation.googleMapsEmbedUrl.trim() ? practiceLocation.googleMapsEmbedUrl.trim() : 'https://maps.google.com/maps?q=Mohali&t=&z=14&ie=UTF8&iwloc=&output=embed'}
                 width="100%"
                 height="220"
                 style={{ border: 0 }}

@@ -17,7 +17,7 @@ export const AppointmentModal: React.FC = () => {
     phone: '',
     email: '',
     preferredDate: '',
-    preferredSlot: 'Morning (10:00 AM – 01:00 PM)',
+    preferredSlot: 'Morning',
     consultationType: 'In-Person (Hospital)' as 'In-Person (Hospital)' | 'Video Consultation',
     cancerTypeOrConcern: '',
     notes: '',
@@ -148,7 +148,9 @@ export const AppointmentModal: React.FC = () => {
                 Thank you. We have logged your request. Our oncology coordinator will contact you at <strong>{formData.phone}</strong> shortly to confirm your consultation schedule.
               </p>
               <div className="bg-slate-50 p-4 rounded-2xl text-xs text-slate-600 text-left space-y-1.5 border border-slate-200/60">
-                <div><strong>Center:</strong> {practiceLocation.hospitalName}</div>
+                {practiceLocation?.hospitalName && (
+                  <div><strong>Center:</strong> {practiceLocation.hospitalName}</div>
+                )}
                 <div><strong>Mode:</strong> {formData.consultationType}</div>
                 <div><strong>Requested Date:</strong> {formData.preferredDate}</div>
               </div>
@@ -223,7 +225,7 @@ export const AppointmentModal: React.FC = () => {
                   <input
                     type="tel"
                     required
-                    placeholder="+91 98765 43210"
+                    placeholder="Enter contact number"
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
@@ -319,9 +321,13 @@ export const AppointmentModal: React.FC = () => {
                 </button>
               </div>
 
-              <p className="text-[11px] text-slate-500 text-center pt-1">
-                Hospital OPD Desk: {practiceLocation.phonePrimary} • Timing: {practiceLocation.consultationTimings}
-              </p>
+              {(practiceLocation?.phonePrimary || practiceLocation?.consultationTimings) && (
+                <p className="text-[11px] text-slate-500 text-center pt-1">
+                  {practiceLocation.phonePrimary ? `Hospital OPD Desk: ${practiceLocation.phonePrimary}` : ''}
+                  {practiceLocation.phonePrimary && practiceLocation.consultationTimings ? ' • ' : ''}
+                  {practiceLocation.consultationTimings ? `Timing: ${practiceLocation.consultationTimings}` : ''}
+                </p>
+              )}
             </form>
           )}
         </div>

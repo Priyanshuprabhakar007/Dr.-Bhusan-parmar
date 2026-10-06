@@ -27,15 +27,20 @@ export const NavigationFooterEditor: React.FC = () => {
   const [footerForm, setFooterForm] = useState<FooterConfig>(() => footerConfig || {} as FooterConfig);
   const [saveToast, setSaveToast] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    let success = false;
     if (activeTab === 'navbar') {
-      updateNavigationMenu(navItems);
+      success = await updateNavigationMenu(navItems);
     } else {
-      updateFooterConfig(footerForm);
+      success = await updateFooterConfig(footerForm);
     }
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save changes. Please try again.');
+    }
   };
 
   const handleAddNavItem = () => {

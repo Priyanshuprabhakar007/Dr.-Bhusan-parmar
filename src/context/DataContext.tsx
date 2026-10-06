@@ -165,7 +165,7 @@ interface DataContextType {
   updateFinalCtaContent: (content: Partial<FinalCtaSectionContent>) => void;
   updateHeroAnimationSettings: (settings: Partial<HeroAnimationSettings>) => void;
   updateGlobalAnimationSettings: (settings: Partial<GlobalAnimationSettings>) => void;
-  updateHomepageSections: (sections: HomepageSectionConfig[]) => void;
+  updateHomepageSections: (sections: HomepageSectionConfig[]) => Promise<boolean>;
   updateLocations: (locations: LocationItem[]) => void;
   addLocation: (location: LocationItem) => void;
   deleteLocation: (id: string) => void;
@@ -198,9 +198,9 @@ interface DataContextType {
   saveSlotDraft: (slotKey: string, draftValue: string, meta?: any) => Promise<boolean>;
   publishSlot: (slotKey: string) => Promise<boolean>;
   publishAllSlots: () => Promise<boolean>;
-  updateNavigationMenu: (menu: NavigationMenuItem[]) => void;
-  updateFooterConfig: (footer: Partial<FooterConfig>) => void;
-  updateSiteSettings: (settings: Partial<SiteSettingsConfig>) => void;
+  updateNavigationMenu: (menu: NavigationMenuItem[]) => Promise<boolean>;
+  updateFooterConfig: (footer: Partial<FooterConfig>) => Promise<boolean>;
+  updateSiteSettings: (settings: Partial<SiteSettingsConfig>) => Promise<boolean>;
   updateSeoGlobalConfig: (seo: Partial<SeoGlobalConfig>) => void;
   updateRedirectRules: (rules: RedirectRule[]) => void;
   updateFormBuilderConfig: (config: Partial<FormBuilderConfig>) => void;
@@ -701,10 +701,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logActivity('UPDATE', 'ANIMATION', 'global-anim', 'Global animation and marquee updated in D1');
   };
 
-  const updateHomepageSections = async (sections: HomepageSectionConfig[]) => {
-    await api.put('/api/admin/homepage', { sections });
-    setHomepageSections(sections);
-    logActivity('REORDER', 'HOMEPAGE_SECTIONS', 'homepage', 'Homepage section order and visibility modified in D1');
+  const updateHomepageSections = async (sections: HomepageSectionConfig[]): Promise<boolean> => {
+    try {
+      await api.put('/api/admin/homepage', { sections });
+      setHomepageSections(sections);
+      logActivity('REORDER', 'HOMEPAGE_SECTIONS', 'homepage', 'Homepage section order and visibility modified in D1');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update homepage sections', error);
+      return false;
+    }
   };
 
   const updateLocations = async (newLocs: LocationItem[]) => {
@@ -963,24 +969,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (resolved && resolved.trim()) ? resolved.trim() : fallback;
   }, [mediaSlots, mediaAssets]);
 
-  const updateNavigationMenu = async (menu: NavigationMenuItem[]) => {
-    await api.put('/api/admin/navigation', { navigation: menu });
-    setNavigationMenu(menu);
-    logActivity('UPDATE', 'NAVIGATION', 'header', 'Updated header navigation menu');
+  const updateNavigationMenu = async (menu: NavigationMenuItem[]): Promise<boolean> => {
+    try {
+      await api.put('/api/admin/navigation', { navigation: menu });
+      setNavigationMenu(menu);
+      logActivity('UPDATE', 'NAVIGATION', 'header', 'Updated header navigation menu');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update navigation menu', error);
+      return false;
+    }
   };
 
-  const updateFooterConfig = async (footer: Partial<FooterConfig>) => {
-    const updated = { ...footerConfig, ...footer };
-    await api.put('/api/admin/footer', updated);
-    setFooterConfig(updated);
-    logActivity('UPDATE', 'FOOTER', 'footer', 'Updated footer content and disclaimer');
+  const updateFooterConfig = async (footer: Partial<FooterConfig>): Promise<boolean> => {
+    try {
+      const updated = { ...footerConfig, ...footer };
+      await api.put('/api/admin/footer', updated);
+      setFooterConfig(updated);
+      logActivity('UPDATE', 'FOOTER', 'footer', 'Updated footer content and disclaimer');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update footer config', error);
+      return false;
+    }
   };
 
-  const updateSiteSettings = async (settings: Partial<SiteSettingsConfig>) => {
-    const updated = { ...siteSettings, ...settings };
-    await api.put('/api/admin/site-settings', updated);
-    setSiteSettings(updated);
-    logActivity('UPDATE', 'SITE_SETTINGS', 'global', 'Updated site settings, emergency notice or announcement bar');
+  const updateSiteSettings = async (settings: Partial<SiteSettingsConfig>): Promise<boolean> => {
+    try {
+      const updated = { ...siteSettings, ...settings };
+      await api.put('/api/admin/site-settings', updated);
+      setSiteSettings(updated);
+      logActivity('UPDATE', 'SITE_SETTINGS', 'global', 'Updated site settings, emergency notice or announcement bar');
+      return true;
+    } catch (error) {
+      console.warn('Failed to update site settings', error);
+      return false;
+    }
   };
 
   const updateSeoGlobalConfig = async (seo: Partial<SeoGlobalConfig>) => {

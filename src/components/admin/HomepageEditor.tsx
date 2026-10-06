@@ -103,14 +103,20 @@ export const HomepageEditor: React.FC = () => {
   };
 
   // Section visibility and reordering
-  const handleToggleSectionVisibility = (id: string) => {
+  const handleToggleSectionVisibility = async (id: string) => {
     const updated = homepageSections.map(sec =>
       sec.id === id ? { ...sec, visible: !sec.visible } : sec
     );
-    updateHomepageSections(updated);
+    const success = await updateHomepageSections(updated);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to update section visibility. Please try again.');
+    }
   };
 
-  const handleMoveSection = (index: number, direction: 'up' | 'down') => {
+  const handleMoveSection = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= homepageSections.length) return;
 
@@ -120,7 +126,13 @@ export const HomepageEditor: React.FC = () => {
 
     // Update order numbers
     const finalOrder = reordered.map((sec, idx) => ({ ...sec, order: idx + 1 }));
-    updateHomepageSections(finalOrder);
+    const success = await updateHomepageSections(finalOrder);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to update section order. Please try again.');
+    }
   };
 
   // Credential items

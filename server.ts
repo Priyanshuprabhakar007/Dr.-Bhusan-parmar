@@ -75,6 +75,55 @@ const privateUpload = multer({
   limits: { fileSize: 30 * 1024 * 1024 } // 30MB max
 });
 
+function normalizeHomepageSection(row: any) {
+  return {
+    id: row.id || row.section_key || '',
+    name: row.title || row.section_key || '',
+    visible: Boolean(row.is_visible),
+    order: Number(row.display_order || 0),
+    customTitle: row.title || '',
+    customSubtitle: row.subtitle || ''
+  };
+}
+
+function normalizeNavigationItem(row: any) {
+  return {
+    id: row.id,
+    label: row.label || '',
+    url: row.url || '',
+    order: Number(row.display_order || 0),
+    isVisible: Boolean(row.is_visible),
+    isExternal: Boolean(row.is_external),
+    openInNewTab: Boolean(row.open_in_new_tab)
+  };
+}
+
+function safeJsonParse(value: any, fallback: any) {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeFooterRow(row: any) {
+  if (!row) return {};
+  return {
+    doctorDescription: row.about_text || row.doctorDescription || '',
+    phone: row.phone || '',
+    whatsapp: row.whatsapp || '',
+    email: row.email || '',
+    address: row.address || '',
+    copyright: row.copyright_text || row.copyright || '',
+    medicalDisclaimer: row.medical_disclaimer || row.medicalDisclaimer || '',
+    privacyPolicyLink: row.privacy_policy_link || row.privacyPolicyLink || '',
+    socialLinks: safeJsonParse(row.social_links || row.socialLinks, {}),
+    footerCta: safeJsonParse(row.footer_cta || row.footerCta, {})
+  };
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -430,7 +479,7 @@ async function startServer() {
         finalCtaContent,
         heroAnimationSettings: store.homepage?.animations?.hero,
         globalAnimationSettings: store.homepage?.animations?.global,
-        homepageSections: store.homepage?.sections || [],
+        homepageSections: (store.homepage?.sections || []).map(normalizeHomepageSection).sort((a,b) => a.order - b.order),
         howCanWeHelp,
         treatmentJourney: store.homepage?.journey_steps || [],
         cancers,
@@ -442,8 +491,8 @@ async function startServer() {
         blogPosts: store.blogs || [],
         faqs: store.faqs || [],
         testimonials: store.testimonials || [],
-        navigationMenu: store.navigation || [],
-        footerConfig: store.footer || {},
+        navigationMenu: (store.navigation || []).map(normalizeNavigationItem).sort((a,b) => a.order - b.order),
+        footerConfig: normalizeFooterRow(store.footer),
         mediaAssets: store.media || [],
         mediaSlots: sanitizedSlots,
         updated_at: store.updated_at
@@ -726,7 +775,8 @@ async function startServer() {
   // GET /api/admin/homepage
   app.get('/api/admin/homepage', (req, res) => {
     const store = getD1Store();
-    res.json({ success: true, homepage: store.homepage });
+    const sections = (store.homepage?.sections || []).map(normalizeHomepageSection).sort((a,b) => a.order - b.order);
+    res.json({ success: true, homepage: store.homepage, sections });
   });
 
   // PUT /api/admin/homepage - Update entire Homepage
@@ -1052,7 +1102,8 @@ async function startServer() {
   // GET / PUT /api/admin/navigation
   app.get('/api/admin/navigation', (req, res) => {
     const store = getD1Store();
-    res.json({ success: true, navigation: store.navigation });
+    const navigation = (store.navigation || []).map(normalizeNavigationItem).sort((a,b) => a.order - b.order);
+    res.json({ success: true, navigation });
   });
 
   app.put('/api/admin/navigation', (req, res) => {
@@ -1064,7 +1115,8 @@ async function startServer() {
   // GET / PUT /api/admin/footer
   app.get('/api/admin/footer', (req, res) => {
     const store = getD1Store();
-    res.json({ success: true, footer: store.footer });
+    const footer = normalizeFooterRow(store.footer);
+    res.json({ success: true, footer });
   });
 
   app.put('/api/admin/footer', (req, res) => {
@@ -1116,6 +1168,20 @@ async function startServer() {
     if (!store.second_opinion_requests) store.second_opinion_requests = [];
     const index = store.second_opinion_requests.findIndex((r: any) => r.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Second opinion request not found' });
+
+    if (req.body.status) {
+      const statusNorm = String(req.body.status).toLowerCase().trim();
+      if (['new', 'pending', 'pending review', 'pending_review', 'under_review'].includes(statusNorm)) {
+        req.body.status = 'new';
+      } else if (['contacted'].includes(statusNorm)) {
+        req.body.status = 'contacted';
+      } else if (['reviewed', 'report_ready', 'completed'].includes(statusNorm)) {
+        req.body.status = 'reviewed';
+      } else {
+        return res.status(400).json({ error: 'Invalid second opinion status' });
+      }
+    }
+
     store.second_opinion_requests[index] = { ...store.second_opinion_requests[index], ...req.body };
     saveD1Store({ second_opinion_requests: store.second_opinion_requests });
     res.json({ success: true, request: store.second_opinion_requests[index] });

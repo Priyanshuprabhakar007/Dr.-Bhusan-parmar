@@ -5,9 +5,24 @@ import { Footer } from './Footer';
 import { AlertTriangle, Bell } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion } from 'motion/react';
+import { getMediaUrl } from '../lib/cloudflareMedia';
+
+function isAnnouncementActive(bar: any) {
+  if (!bar?.enabled) return false;
+  const now = Date.now();
+  if (bar.startDate) {
+    const start = Date.parse(bar.startDate);
+    if (!Number.isNaN(start) && now < start) return false;
+  }
+  if (bar.endDate) {
+    const end = Date.parse(bar.endDate);
+    if (!Number.isNaN(end) && now > end) return false;
+  }
+  return true;
+}
 
 export const WebsiteLayout: React.FC = () => {
-  const { siteSettings } = useData();
+  const { siteSettings, doctorProfile, mediaAssets } = useData();
   const location = useLocation();
   const headerRef = useRef<HTMLElement>(null);
   const [headerHeight, setHeaderHeight] = useState(70);
@@ -35,6 +50,25 @@ export const WebsiteLayout: React.FC = () => {
     };
   }, [siteSettings]);
 
+  if (siteSettings?.maintenanceMode === true && !location.pathname.startsWith('/admin')) {
+    const logoUrl = getMediaUrl(siteSettings.logoUrl, mediaAssets) || siteSettings.logoUrl || '';
+    return (
+      <div className="min-h-screen bg-[#071D2D] text-white flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="max-w-md w-full bg-[#0F2333] border border-slate-700/80 rounded-3xl p-8 shadow-2xl space-y-6">
+          {Boolean(logoUrl.trim()) && (
+            <img src={logoUrl.trim()} alt={doctorProfile?.name || 'Doctor'} className="h-12 w-auto mx-auto object-contain" />
+          )}
+          <h1 className="text-2xl font-bold font-heading">{doctorProfile?.name || 'Dr. Bhushan Parmar'}</h1>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            {siteSettings.maintenanceMessage || 'Our practice website is currently undergoing scheduled maintenance and updates. Please check back shortly or contact our clinic directly for urgent inquiries.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const showAnnouncement = isAnnouncementActive(siteSettings?.announcementBar);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FCFDFE] text-slate-900 selection:bg-teal-800 selection:text-white font-sans antialiased">
       {/* 1. PERSISTENT FIXED SITE HEADER WRAPPER */}
@@ -51,7 +85,7 @@ export const WebsiteLayout: React.FC = () => {
         )}
 
         {/* Layer 2: Top Announcement Bar */}
-        {siteSettings?.announcementBar?.enabled && (
+        {showAnnouncement && (
           <div className="bg-[#071D2D] text-slate-200 px-4 py-2 text-xs flex items-center justify-center space-x-2 text-center border-b border-white/10 relative z-10 min-h-[34px]">
             <Bell className="w-3.5 h-3.5 text-[#18B8B4] shrink-0" />
             <span className="truncate">{siteSettings.announcementBar.text}</span>

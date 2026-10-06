@@ -17,11 +17,15 @@ export const SiteSettingsEditor: React.FC = () => {
   const [form, setForm] = useState<SiteSettingsConfig>(siteSettings);
   const [saveToast, setSaveToast] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSiteSettings(form);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    const success = await updateSiteSettings(form);
+    if (success) {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } else {
+      alert('Failed to save site settings. Please try again.');
+    }
   };
 
   return (

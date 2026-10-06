@@ -549,17 +549,7 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       answer: 'You can submit your pathology reports, radiological scans (CT/PET-CT), and treatment history via our website enquiry form or WhatsApp.'
     }
   ],
-  testimonials: [
-    {
-      id: 't-1',
-      patientName: 'Ramesh K.',
-      cancerType: 'Non-Small Cell Lung Cancer',
-      treatmentReceived: 'Targeted Therapy (EGFR Inhibitor)',
-      feedback: 'Dr. Bhushan Parmar recommended genomic sequencing which identified an EGFR mutation. His targeted therapy plan gave us clear hope and exceptional quality of life.',
-      rating: 5,
-      date: '2025-01-20'
-    }
-  ],
+  testimonials: [],
   navigation: [
     { id: 'nav-home', label: 'Home', url: '/', order: 1, visible: true },
     { id: 'nav-about', label: 'About', url: '/#about', order: 2, visible: true },
@@ -679,26 +669,6 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       salt: 's_adm_210k',
       status: 'active',
       createdAt: '2025-01-01'
-    },
-    {
-      id: 'usr-2',
-      email: 'content@oncology.care',
-      name: 'Clinical Content Editor',
-      role: 'content_manager',
-      password_hash: '8a6ef12ddfd0c29a2e9acbdf4a5f36882529f4092ce619a588eca9bd77fb6eff',
-      salt: 'c_mgr_210k',
-      status: 'active',
-      createdAt: '2025-01-15'
-    },
-    {
-      id: 'usr-3',
-      email: 'enquiries@oncology.care',
-      name: 'Patient Care Coordinator',
-      role: 'enquiry_manager',
-      password_hash: '360fe5e541b066356657306e8125d969486510cab62219dbbda3644815f2d81c',
-      salt: 'e_mgr_210k',
-      status: 'active',
-      createdAt: '2025-02-01'
     }
   ],
   admin_sessions: [],

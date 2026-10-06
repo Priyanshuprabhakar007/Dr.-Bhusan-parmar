@@ -106,7 +106,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     ratio: 'Portrait',
     allowMobileVariant: true,
     required: true,
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=85',
+    defaultFallbackUrl: '',
     usageContext: 'Right side of Homepage Hero section on desktop screens'
   },
   {
@@ -130,7 +130,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     section: 'Mobile Hero',
     recommendedDimensions: '800 × 1000px',
     ratio: 'Portrait',
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=800&q=85',
+    defaultFallbackUrl: '',
     usageContext: 'Hero section portrait on mobile viewports (<640px)'
   },
 
@@ -148,7 +148,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     ratio: 'Portrait',
     allowMobileVariant: true,
     required: true,
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=1000&q=85',
+    defaultFallbackUrl: '',
     usageContext: 'Meet Your Oncologist profile block on homepage and about page'
   },
   {
@@ -160,7 +160,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     section: 'Meet Your Oncologist Mobile',
     recommendedDimensions: '800 × 1000px',
     ratio: 'Portrait',
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=800&q=85',
+    defaultFallbackUrl: '',
     usageContext: 'Meet Your Oncologist section on smartphones'
   },
 
@@ -322,7 +322,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     recommendedDimensions: '1000 × 1200px',
     ratio: 'Portrait',
     required: true,
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=1000&q=85',
+    defaultFallbackUrl: '',
     usageContext: 'Doctor reviewing medical records in Second Opinion section'
   },
   {

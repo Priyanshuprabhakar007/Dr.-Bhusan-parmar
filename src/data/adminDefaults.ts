@@ -27,35 +27,7 @@ import {
 } from '../types/admin';
 
 // Initial Admin Users metadata (authentication and credentials verified securely server-side)
-export const defaultAdminUsers: AdminUser[] = [
-  {
-    id: 'usr-1',
-    email: 'admin@oncology.care',
-    name: 'Dr. Bhushan Parmar',
-    role: 'super_admin',
-    status: 'active',
-    lastLogin: '2026-09-18 08:30 IST',
-    createdAt: '2025-01-01'
-  },
-  {
-    id: 'usr-2',
-    email: 'content@oncology.care',
-    name: 'Clinical Content Editor',
-    role: 'content_manager',
-    status: 'active',
-    lastLogin: '2026-09-17 14:15 IST',
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-3',
-    email: 'enquiries@oncology.care',
-    name: 'Patient Care Coordinator',
-    role: 'enquiry_manager',
-    status: 'active',
-    lastLogin: '2026-09-18 09:10 IST',
-    createdAt: '2025-02-01'
-  }
-];
+export const defaultAdminUsers: AdminUser[] = [];
 
 export const defaultHeroContent: HeroContent = {
   smallLabel: 'MEDICAL ONCOLOGY • PERSONALIZED CANCER CARE',
@@ -68,8 +40,7 @@ export const defaultHeroContent: HeroContent = {
   primaryCtaUrl: '#appointment',
   secondaryCtaLabel: 'Explore Care Options',
   secondaryCtaUrl: '#cancers',
-  doctorHeroImage:
-    'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1600&q=85',
+  doctorHeroImage: '',
   mobileDoctorHeroImage: '',
   doctorHeroFocalPoint: '70% 25%',
   doctorHeroAltText: 'Dr. Bhushan Parmar, Senior Consultant Medical Oncology standing in clinical suite',
@@ -120,8 +91,7 @@ export const defaultAboutDoctorContent: AboutDoctorSectionContent = {
   smallLabel: 'MEET YOUR ONCOLOGIST',
   mainHeading: 'Experience, evidence and compassionate cancer care',
   subHeading: 'Bridging cutting-edge oncology science with deeply personalized patient support.',
-  aboutDoctorImage:
-    'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=1200&q=85',
+  aboutDoctorImage: '',
   aboutDoctorMobileImage: '',
   aboutDoctorFocalPoint: '50% 20%',
   aboutDoctorAltText: 'Dr. Bhushan Parmar - Compassionate and evidence-based oncology care',
@@ -135,8 +105,7 @@ export const defaultSecondOpinionContent: SecondOpinionSectionContent = {
   mainHeading: 'A second opinion can bring clarity',
   description:
     'If you already have a diagnosis or treatment plan, you can request a review of your reports before deciding your next step. Confirm your staging, explore molecular therapies, and gain peace of mind.',
-  secondOpinionImage:
-    'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1600&q=85',
+  secondOpinionImage: '',
   secondOpinionMobileImage: '',
   secondOpinionFocalPoint: '60% 45%',
   secondOpinionAltText: 'Physician examining diagnostic scans, pathology reports and second opinion oncology documentation',
@@ -151,7 +120,7 @@ export const defaultFinalCtaContent: FinalCtaSectionContent = {
   description: 'Schedule a consultation or request a second opinion. Receive thoughtful, evidence-based recommendations tailored to your diagnosis.',
   primaryCtaLabel: 'Book Consultation',
   secondaryCtaLabel: 'Get Second Opinion',
-  finalCtaImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=85',
+  finalCtaImage: '',
   finalCtaMobileImage: '',
   finalCtaImagePositionX: 50,
   finalCtaImagePositionY: 30,
@@ -720,30 +689,7 @@ export const defaultJourneySteps: JourneyStepItem[] = [
   }
 ];
 
-export const defaultContactEnquiries: ContactEnquiryItem[] = [
-  {
-    id: 'enq-1',
-    name: 'Balwinder Kaur',
-    phone: '+91 98150 44321',
-    email: 'balwinder.k@example.com',
-    message: 'Seeking opinion on chemotherapy protocol for ovarian cancer recurrence after 18 months.',
-    sourcePage: 'Homepage - Final CTA',
-    submittedDate: '2026-09-17 11:24 IST',
-    status: 'New',
-    utm: { source: 'google', medium: 'cpc', campaign: 'oncology_mohali' }
-  },
-  {
-    id: 'enq-2',
-    name: 'Suresh Singla',
-    phone: '+91 94170 88210',
-    email: 'suresh.s@example.com',
-    message: 'Wanted to know if immunotherapy is available for renal cell carcinoma at Max Hospital Mohali.',
-    sourcePage: 'Genitourinary Care Page',
-    submittedDate: '2026-09-16 16:40 IST',
-    status: 'Replied',
-    notes: 'Called patient. Discussed nivolumab + cabozantinib protocol. Scheduled OPD on Thursday.'
-  }
-];
+export const defaultContactEnquiries: ContactEnquiryItem[] = [];
 
 export const defaultMediaAssets: MediaAsset[] = [
   {
@@ -849,17 +795,17 @@ export const defaultSiteSettings: SiteSettingsConfig = {
   primaryColor: '#073F3D',
   secondaryColor: '#149A96',
   accentColor: '#18B8B4',
-  defaultPhone: '+91 98141 23456',
-  defaultWhatsapp: '+91 98141 23456',
-  defaultEmail: 'drbhushanparmar@gmail.com',
-  emergencyNotice: 'Emergency Notice: For acute oncological complications, severe neutropenic fever (>100.4°F), or sudden breathlessness, report immediately to your nearest 24x7 hospital Emergency Department.',
+  defaultPhone: '',
+  defaultWhatsapp: '',
+  defaultEmail: '',
+  emergencyNotice: '',
   maintenanceMode: false,
-  maintenanceMessage: 'Our website is undergoing scheduled medical directory updates. For immediate OPD appointments, please call +91 98141 23456.',
+  maintenanceMessage: '',
   announcementBar: {
-    enabled: true,
-    text: 'Now Available for In-Person & Hybrid Video Second Opinions across Punjab, Haryana, Himachal & J&K.',
-    ctaText: 'Schedule Consultation',
-    ctaUrl: '#appointment'
+    enabled: false,
+    text: '',
+    ctaText: '',
+    ctaUrl: ''
   }
 };
 
@@ -871,8 +817,8 @@ export const defaultSeoGlobalConfig: SeoGlobalConfig = {
   robotsIndex: true,
   robotsFollow: true,
   sitemapEnabled: true,
-  googleSearchConsole: 'gsc-verification-code-bhushan-parmar',
-  googleAnalyticsId: 'G-ONCOLOGY778',
+  googleSearchConsole: '',
+  googleAnalyticsId: '',
   metaPixelId: '',
   orgName: 'Dr. Bhushan Parmar Medical Oncology Practice',
   orgType: 'Physician',
@@ -926,89 +872,7 @@ export const defaultFormBuilderConfig: FormBuilderConfig = {
   }
 };
 
-export const defaultActivityLogs: ActivityLogItem[] = [
-  {
-    id: 'log-1',
-    userEmail: 'admin@oncology.care',
-    userName: 'Dr. Bhushan Parmar',
-    action: 'LOGIN',
-    entityType: 'AUTH',
-    timestamp: '2026-09-18 08:30 IST',
-    details: 'Logged in from administrator workstation'
-  },
-  {
-    id: 'log-2',
-    userEmail: 'content@oncology.care',
-    userName: 'Clinical Content Editor',
-    action: 'PAGE_UPDATED',
-    entityType: 'HERO',
-    entityId: 'sec-hero',
-    timestamp: '2026-09-17 16:45 IST',
-    details: 'Updated Hero credentials and precision oncology messaging'
-  },
-  {
-    id: 'log-3',
-    userEmail: 'enquiries@oncology.care',
-    userName: 'Patient Care Coordinator',
-    action: 'STATUS_CHANGED',
-    entityType: 'APPOINTMENT',
-    entityId: 'app-sample-2',
-    timestamp: '2026-09-17 11:20 IST',
-    details: 'Changed status of appointment for Anuradha Devi to Confirmed'
-  }
-];
+export const defaultActivityLogs: ActivityLogItem[] = [];
 
-export const defaultBlogPosts: BlogPostRecord[] = [
-  {
-    id: 'blog-1',
-    title: 'Understanding Targeted Therapy in Modern Medical Oncology',
-    slug: 'understanding-targeted-therapy-modern-medical-oncology',
-    category: 'Targeted Therapy',
-    excerpt: 'How precision molecular diagnostics and kinase inhibitors target cancer cell specific mutations while sparing healthy tissue.',
-    featuredImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=900&q=80',
-    mainContent: 'Precision oncology has revolutionized the treatment landscape of solid tumors and blood cancers. Unlike traditional chemotherapy which affects rapidly dividing cells indiscriminately, targeted therapies home in on specific proteins or genetic mutations that drive tumor growth.\n\nDr. Bhushan Parmar discusses the importance of comprehensive genomic profiling (CGP) prior to initiating therapy, and how personalized treatment selection significantly improves clinical response and patient quality of life.',
-    author: 'Dr. Bhushan Parmar',
-    publishDate: '2026-03-10',
-    readingTime: '5 min read',
-    seoTitle: 'Understanding Targeted Therapy | Dr. Bhushan Parmar Oncology',
-    metaDescription: 'Learn how targeted therapy and precision oncology match cancer treatments to genetic profiles for better clinical outcomes.',
-    status: 'published',
-    displayOrder: 1,
-    updatedAt: '2026-03-10'
-  },
-  {
-    id: 'blog-2',
-    title: 'What Patients Should Know About Immunotherapy Side Effects',
-    slug: 'what-patients-should-know-about-immunotherapy-side-effects',
-    category: 'Immunotherapy',
-    excerpt: 'A comprehensive guide for patients undergoing checkpoint inhibitor immunotherapy and recognizing immune-related adverse events.',
-    featuredImage: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=900&q=80',
-    mainContent: 'Immunotherapy harnesses the body’s own immune system to recognize and attack cancer cells. While often associated with fewer conventional side effects than chemotherapy, checkpoint inhibitors can prompt immune-mediated responses in healthy organs.\n\nEarly detection and timely management of immune-related adverse events (irAEs) by an experienced medical oncologist are vital for patient safety.',
-    author: 'Dr. Bhushan Parmar',
-    publishDate: '2026-03-05',
-    readingTime: '4 min read',
-    seoTitle: 'Immunotherapy Side Effects Guide | Dr. Bhushan Parmar',
-    metaDescription: 'Understand checkpoint inhibitors, potential immune-related side effects, and how your oncology team manages them.',
-    status: 'published',
-    displayOrder: 2,
-    updatedAt: '2026-03-05'
-  },
-  {
-    id: 'blog-3',
-    title: 'Managing Chemotherapy Fatigue & Nutrition During Treatment',
-    slug: 'managing-chemotherapy-fatigue-and-nutrition',
-    category: 'Patient Guidance',
-    excerpt: 'Practical clinical recommendations for maintaining energy, dietary strength, and well-being during systemic oncology therapy.',
-    featuredImage: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=900&q=80',
-    mainContent: 'Fatigue is one of the most common symptoms reported by patients undergoing cancer treatment. Combining structured gentle physical activity with optimal caloric and protein nutrition can make a profound difference.\n\nDr. Bhushan Parmar emphasizes supportive care integration from day one to ensure treatment adherence and preserve overall vitality.',
-    author: 'Dr. Bhushan Parmar',
-    publishDate: '2026-02-28',
-    readingTime: '6 min read',
-    seoTitle: 'Chemotherapy Fatigue & Nutrition Tips | Dr. Bhushan Parmar',
-    metaDescription: 'Expert advice on managing fatigue and maintaining balanced nutrition during cancer treatment.',
-    status: 'published',
-    displayOrder: 3,
-    updatedAt: '2026-02-28'
-  }
-];
+export const defaultBlogPosts: BlogPostRecord[] = [];
 

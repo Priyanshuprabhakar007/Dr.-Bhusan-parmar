@@ -598,7 +598,7 @@ async function startServer() {
 
   // POST /api/public/second-opinion/upload-report - Direct file upload to private R2 storage simulation
   // CRITICAL: NO public URL is returned. Patient files are protected in private storage.
-  app.post('/api/public/second-opinion/upload-report', privateUpload.single('file'), (req, res) => {
+  app.post('/api/public/second-opinion/upload-report', privateUpload.single('file') as any, (req: any, res: any) => {
     try {
       const file = req.file;
       if (!file) {
@@ -1244,7 +1244,7 @@ async function startServer() {
   });
 
   // POST /api/admin/media/upload - Direct PC Upload to Public R2 Simulation & D1
-  app.post('/api/admin/media/upload', publicUpload.single('file'), (req, res) => {
+  app.post('/api/admin/media/upload', publicUpload.single('file') as any, (req: any, res: any) => {
     try {
       const file = req.file;
       if (!file) {

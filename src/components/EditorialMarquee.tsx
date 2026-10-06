@@ -1,8 +1,17 @@
 import React from 'react';
+import { useData } from '../context/DataContext';
 
 export const EditorialMarquee: React.FC = () => {
-  const text =
-    'Personalized Care ✦ Precision Oncology ✦ Compassion ✦ Clarity ✦ Advanced Treatment ✦ Evidence-Based Guidance ✦ ';
+  const { globalAnimationSettings } = useData();
+  const marquee = globalAnimationSettings?.marquee;
+
+  if (!globalAnimationSettings?.enabled || !marquee?.enabled || !marquee?.phrases?.length) {
+    return null;
+  }
+
+  const text = marquee.phrases.join(' ✦ ') + ' ✦ ';
+  const duration = marquee.speed === 'slow' ? '60s' : marquee.speed === 'fast' ? '22s' : '40s';
+  const direction = marquee.direction === 'right' ? 'reverse' : 'normal';
 
   return (
     <div
@@ -14,7 +23,10 @@ export const EditorialMarquee: React.FC = () => {
       <div className="absolute right-0 inset-y-0 w-16 sm:w-28 bg-gradient-to-l from-[#073F3D] to-transparent z-10 pointer-events-none" />
 
       <div className="flex w-fit whitespace-nowrap marquee-track">
-        <div className="flex shrink-0 items-center animate-marquee">
+        <div 
+            className="flex shrink-0 items-center animate-marquee"
+            style={{ animationDuration: duration, animationDirection: direction }}
+        >
           <span className="text-xl sm:text-2xl lg:text-3xl font-bold font-heading uppercase tracking-[0.14em] text-[#18B8B4]/80 px-4">
             {text}
           </span>
@@ -22,7 +34,10 @@ export const EditorialMarquee: React.FC = () => {
             {text}
           </span>
         </div>
-        <div className="flex shrink-0 items-center animate-marquee">
+        <div 
+            className="flex shrink-0 items-center animate-marquee"
+            style={{ animationDuration: duration, animationDirection: direction }}
+        >
           <span className="text-xl sm:text-2xl lg:text-3xl font-bold font-heading uppercase tracking-[0.14em] text-[#18B8B4]/80 px-4">
             {text}
           </span>

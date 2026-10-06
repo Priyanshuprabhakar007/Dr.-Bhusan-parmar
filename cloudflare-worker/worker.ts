@@ -701,7 +701,7 @@ export default {
           if (!isEnquiryManager) return json({ error: 'Forbidden' }, 403);
           const [requests, files] = await Promise.all([
             env.DB.prepare('SELECT * FROM second_opinion_requests ORDER BY created_at DESC LIMIT 200').all(),
-            env.DB.prepare('SELECT * FROM second_opinion_files ORDER BY uploaded_at DESC LIMIT 500').all()
+            env.DB.prepare('SELECT id, request_id, original_filename, file_size, mime_type, file_type, uploaded_at FROM second_opinion_files ORDER BY uploaded_at DESC LIMIT 500').all()
           ]);
           const enriched = (requests.results || []).map((r: any) => ({
             ...r,
@@ -718,9 +718,10 @@ export default {
           let dbStatus = body.status;
           if (dbStatus) {
             const lower = dbStatus.toLowerCase();
-            if (lower === 'pending review') dbStatus = 'new';
+            if (['new', 'pending', 'pending_review', 'under_review'].includes(lower)) dbStatus = 'new';
             else if (lower === 'contacted') dbStatus = 'contacted';
-            else if (lower === 'reviewed') dbStatus = 'reviewed';
+            else if (['reviewed', 'report_ready', 'completed'].includes(lower)) dbStatus = 'reviewed';
+            else return json({ error: "Invalid second opinion status" }, 400);
           }
 
           await env.DB.prepare(

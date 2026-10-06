@@ -1,48 +1,20 @@
 import React, { useRef } from 'react';
 import { motion, useInView } from 'motion/react';
 import { MaskedHeading, EDITORIAL_EASE } from './MotionUtils';
+import { useData } from '../context/DataContext';
 
 export const JourneySection: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+  const { treatmentJourney } = useData();
 
-  const steps = [
-    {
-      num: '01',
-      title: 'Consultation',
-      desc: 'In-depth clinical history, symptom evaluation, and physical examination.'
-    },
-    {
-      num: '02',
-      title: 'Report Review',
-      desc: 'Meticulous appraisal of biopsy, histology, and diagnostic lab work.'
-    },
-    {
-      num: '03',
-      title: 'Diagnosis & Staging',
-      desc: 'PET/CT scans and molecular genetic profiling.'
-    },
-    {
-      num: '04',
-      title: 'Treatment Planning',
-      desc: 'Tailored protocol selection with multidisciplinary tumor board consensus.'
-    },
-    {
-      num: '05',
-      title: 'Treatment Delivery',
-      desc: 'Delivery of systemic therapy with strict antiemetic and organ-protective care.'
-    },
-    {
-      num: '06',
-      title: 'Response Monitoring',
-      desc: 'Serial clinical evaluation and interim diagnostic imaging.'
-    },
-    {
-      num: '07',
-      title: 'Follow-Up & Care',
-      desc: 'Long-term surveillance, recovery optimization, and survivorship planning.'
-    }
-  ];
+  const journey = Array.isArray(treatmentJourney) 
+    ? treatmentJourney
+        .filter(j => j.enabled !== false)
+        .sort((a, b) => a.order - b.order)
+    : [];
+
+  if (journey.length === 0) return null;
 
   return (
     <section
@@ -96,8 +68,8 @@ export const JourneySection: React.FC = () => {
           />
 
           <div className="grid grid-cols-7 gap-4 relative z-10 text-left">
-            {steps.map((step, idx) => (
-              <div key={step.num} className="group">
+            {journey.map((step, idx) => (
+              <div key={`desktop-${step.id || idx}`} className="group">
                 {/* Milestone Indicator Node: scales up 0.6 -> 1 when the line reaches it */}
                 <div className="flex items-center space-x-2 mb-4">
                   <motion.div
@@ -111,7 +83,7 @@ export const JourneySection: React.FC = () => {
                     className="w-14 h-14 rounded-full bg-white border-2 border-stone-200 group-hover:border-[#18B8B4] flex items-center justify-center transition-colors shadow-2xs group-hover:shadow-md"
                   >
                     <span className="text-sm font-extrabold text-[#073F3D] font-heading">
-                      {step.num}
+                      {step.number}
                     </span>
                   </motion.div>
                 </div>
@@ -130,7 +102,7 @@ export const JourneySection: React.FC = () => {
                     {step.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    {step.desc}
+                    {step.shortDescription}
                   </p>
                 </motion.div>
               </div>
@@ -152,8 +124,8 @@ export const JourneySection: React.FC = () => {
             className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-[#18B8B4]"
           />
 
-          {steps.map((step, idx) => (
-            <div key={step.num} className="relative group">
+          {journey.map((step, idx) => (
+            <div key={`mobile-${step.id || idx}`} className="relative group">
               {/* Dot marker */}
               <motion.div
                 initial={{ scale: 0.6, opacity: 0 }}
@@ -166,7 +138,7 @@ export const JourneySection: React.FC = () => {
                 className="absolute -left-[33px] top-0 w-8 h-8 rounded-full bg-white border-2 border-[#073F3D] flex items-center justify-center shadow-xs z-10"
               >
                 <span className="text-[11px] font-extrabold text-[#073F3D]">
-                  {step.num}
+                  {step.number}
                 </span>
               </motion.div>
 
@@ -184,7 +156,7 @@ export const JourneySection: React.FC = () => {
                   {step.title}
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  {step.desc}
+                  {step.shortDescription}
                 </p>
               </motion.div>
             </div>

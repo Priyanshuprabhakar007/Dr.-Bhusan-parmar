@@ -76,9 +76,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Homepage Hero',
     targetTable: 'homepage.hero',
     targetField: 'doctorHeroImage',
-    publishedValue: '/uploads/muaxx0ec-k2da59.png',
-    draftValue: '/uploads/muaxx0ec-k2da59.png',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-hero-bg': {
@@ -87,9 +87,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Homepage Hero',
     targetTable: 'homepage.hero',
     targetField: 'heroBackgroundImage',
-    publishedValue: '/uploads/muaxx6o2-ax6xwp.png',
-    draftValue: '/uploads/muaxx6o2-ax6xwp.png',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-about-doc': {
@@ -98,9 +98,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Homepage About',
     targetTable: 'homepage.about',
     targetField: 'aboutDoctorImage',
-    publishedValue: '/uploads/muaxxd1t-v1294f.png',
-    draftValue: '/uploads/muaxxd1t-v1294f.png',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-pathway-consultation': {
@@ -109,9 +109,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Patient Care Pathways',
     targetTable: 'homepage.how_can_help',
     targetField: 'image_id:0',
-    publishedValue: 'med-1',
-    draftValue: 'med-1',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-pathway-systemic': {
@@ -120,9 +120,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Patient Care Pathways',
     targetTable: 'homepage.how_can_help',
     targetField: 'image_id:1',
-    publishedValue: 'med-2',
-    draftValue: 'med-2',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-pathway-second-opinion': {
@@ -131,9 +131,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Patient Care Pathways',
     targetTable: 'homepage.how_can_help',
     targetField: 'image_id:2',
-    publishedValue: 'med-hero-doc',
-    draftValue: 'med-hero-doc',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-evidence-oncology': {
@@ -142,9 +142,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Evidence-Based Oncology',
     targetTable: 'homepage.sections',
     targetField: 'journey_banner',
-    publishedValue: 'med-3',
-    draftValue: 'med-3',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-cancer-solid-tumors': {
@@ -153,9 +153,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Cancer Care Categories',
     targetTable: 'cancer_categories',
     targetField: 'solid-tumors',
-    publishedValue: 'med-3',
-    draftValue: 'med-3',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-cancer-blood-malignancies': {
@@ -164,9 +164,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Cancer Care Categories',
     targetTable: 'cancer_categories',
     targetField: 'blood-malignancies',
-    publishedValue: 'med-hero-doc',
-    draftValue: 'med-hero-doc',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-treatment-chemotherapy': {
@@ -175,9 +175,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Treatments & Modalities',
     targetTable: 'treatments',
     targetField: 'chemotherapy-systemic',
-    publishedValue: 'med-1',
-    draftValue: 'med-1',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-treatment-targeted': {
@@ -186,9 +186,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Treatments & Modalities',
     targetTable: 'treatments',
     targetField: 'targeted-therapy',
-    publishedValue: 'med-2',
-    draftValue: 'med-2',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-treatment-immunotherapy': {
@@ -197,9 +197,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Treatments & Modalities',
     targetTable: 'treatments',
     targetField: 'immunotherapy',
-    publishedValue: 'med-3',
-    draftValue: 'med-3',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-second-opinion-doctor': {
@@ -208,9 +208,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Second Opinion',
     targetTable: 'homepage.second_opinion',
     targetField: 'secondOpinionImage',
-    publishedValue: '/uploads/muaxxd1t-v1294f.png',
-    draftValue: '/uploads/muaxxd1t-v1294f.png',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-second-opinion-banner': {
@@ -219,9 +219,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Second Opinion',
     targetTable: 'site_settings',
     targetField: 'secondOpinionBannerImage',
-    publishedValue: 'med-2',
-    draftValue: 'med-2',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-final-cta-doc': {
@@ -230,9 +230,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'Final Consultation CTA',
     targetTable: 'homepage.final_cta',
     targetField: 'finalCtaImage',
-    publishedValue: 'med-final-cta-doc',
-    draftValue: 'med-final-cta-doc',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   },
   'slot-branding-logo': {
@@ -263,9 +263,9 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
     section: 'SEO & Metadata',
     targetTable: 'site_settings',
     targetField: 'defaultSocialImage',
-    publishedValue: 'med-final-cta-doc',
-    draftValue: 'med-final-cta-doc',
-    status: 'published',
+    publishedValue: '',
+    draftValue: '',
+    status: 'unsaved',
     updatedAt: new Date().toISOString()
   }
 };
@@ -274,18 +274,18 @@ const initialMediaSlots: Record<string, MediaSlotRecord> = {
 const defaultDatabaseSeed: D1DatabaseSchema = {
   site_settings: {
     siteName: 'Dr. Bhushan Parmar – Senior Consultant Medical Oncology',
-    phone: '+91 98765 43210',
-    whatsapp: '+91 98765 43210',
-    email: 'oncology.drbhushan@gmail.com',
+    phone: '',
+    whatsapp: '',
+    email: '',
     publicMediaUrl: 'https://media.drbhushanparmar.com',
     logoUrl: '/assets/images/logo.png',
     darkLogoUrl: '/assets/images/logo.png',
     lightLogoUrl: '/assets/images/logo.png',
     footerLogoUrl: '/assets/images/logo.png',
     favicon: '/favicon.ico',
-    defaultSocialImage: 'med-final-cta-doc',
-    secondOpinionBannerImage: 'med-2',
-    finalCtaDoctorImage: 'med-final-cta-doc',
+    defaultSocialImage: '',
+    secondOpinionBannerImage: '',
+    finalCtaDoctorImage: '',
     anatomyImage: '/assets/images/medical_translucent_anatomy_fullbody.svg',
     desktopAnatomyImage: '/assets/images/medical_translucent_anatomy_fullbody.svg',
     mobileAnatomyImage: '/assets/images/medical_translucent_anatomy_fullbody.svg',
@@ -301,22 +301,22 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
     heroSubheadline:
       'Advanced medical oncology care for solid tumors and blood cancers with personalized treatment planning using modern systemic therapies, targeted drugs, and immunotherapy.',
     bioSummary:
-      'Dr. Bhushan Parmar is a distinguished Senior Consultant in Medical Oncology with over a decade of dedicated clinical experience in diagnosing and treating solid tumors and hematological malignancies.',
+      'Dr. Bhushan Parmar is a Senior Consultant in Medical Oncology with over a decade of dedicated clinical experience in diagnosing and treating solid tumors and hematological malignancies.',
     fullBio: [
-      'Dr. Bhushan Parmar completed his MBBS from Indira Gandhi Government Medical College, Shimla, followed by his MD in Clinical Oncology & Radiation Therapy from the Regional Cancer Centre, IGMC Shimla.',
-      'To achieve the highest tier of super-specialization, Dr. Parmar attained his DrNB in Medical Oncology from the acclaimed Rajiv Gandhi Cancer Institute & Research Centre, Delhi.'
+      'Dr. Bhushan Parmar completed his MBBS followed by his MD in Clinical Oncology & Radiation Therapy.',
+      'Dr. Parmar attained his DrNB in Medical Oncology.'
     ],
-    photoUrl: 'med-final-cta-doc',
-    hero_image_id: 'med-hero-doc',
-    about_image_id: 'med-1',
-    profile_image_id: 'med-hero-doc',
-    second_opinion_image_id: 'med-2',
-    final_cta_image_id: 'med-final-cta-doc',
+    photoUrl: '',
+    hero_image_id: '',
+    about_image_id: '',
+    profile_image_id: '',
+    second_opinion_image_id: '',
+    final_cta_image_id: '',
     qualifications: [
-      { degree: 'MBBS', institution: 'IGMC Shimla', period: 'Graduation', description: 'Comprehensive medical education with distinction.' },
-      { degree: 'MD – Clinical Oncology', institution: 'RCC, IGMC Shimla', period: 'Postgraduate', description: 'Specialized clinical oncology training.' },
-      { degree: 'Senior Residency', institution: 'PGIMER Chandigarh', period: 'Super-Specialty', description: 'Tertiary cancer care management.' },
-      { degree: 'DrNB – Medical Oncology', institution: 'Rajiv Gandhi Cancer Institute, Delhi', period: 'Doctorate', description: 'Precision oncology & targeted therapy.' }
+      { degree: 'MBBS', institution: '', period: 'Graduation', description: 'Comprehensive medical education.' },
+      { degree: 'MD – Clinical Oncology', institution: '', period: 'Postgraduate', description: 'Specialized clinical oncology training.' },
+      { degree: 'Senior Residency', institution: 'PGIMER', period: 'Super-Specialty', description: 'Tertiary cancer care management.' },
+      { degree: 'DrNB – Medical Oncology', institution: '', period: 'Doctorate', description: 'Precision oncology & targeted therapy.' }
     ],
     coreExpertise: [
       'Medical Oncology & Systemic Protocols',
@@ -326,7 +326,7 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       'Solid Tumor Comprehensive Care',
       'Blood Malignancies (Leukemias & Lymphomas)'
     ],
-    memberships: ['ESMO', 'ASCO', 'ISMPO', 'API']
+    memberships: []
   },
   homepage: {
     hero: {
@@ -334,9 +334,9 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       subheadline: 'Advanced medical oncology care for solid tumors and blood cancers with personalized treatment planning using modern systemic therapies, targeted drugs, and immunotherapy.',
       primaryCtaText: 'Book Consultation',
       secondaryCtaText: 'Get Second Opinion',
-      doctorHeroImage: 'med-hero-doc',
-      hero_image_id: 'med-hero-doc',
-      mobile_hero_image_id: 'med-hero-doc',
+      doctorHeroImage: '',
+      hero_image_id: '',
+      mobile_hero_image_id: '',
       experienceYearsText: '10+ Years',
       experienceSubtext: 'Dedicated Oncology Practice'
     },
@@ -344,16 +344,16 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       sectionTitle: 'MEET YOUR ONCOLOGIST',
       heading: 'Compassionate, Evidence-Based Medical Oncology',
       description: 'Dr. Bhushan Parmar believes in a patient-first approach to cancer care, combining cutting-edge medical oncology advancements with deep empathy and personalized attention.',
-      aboutDoctorImage: 'med-1',
-      about_image_id: 'med-1',
-      highlights: ['PGIMER & RGCI Trained', '10+ Years Dedicated Experience', 'Personalized Treatment Protocols']
+      aboutDoctorImage: '',
+      about_image_id: '',
+      highlights: ['PGIMER Trained', '10+ Years Dedicated Experience', 'Personalized Treatment Protocols']
     },
     second_opinion: {
       smallLabel: 'CONFIRM YOUR DIAGNOSIS',
       mainHeading: 'Seeking a Second Opinion on Your Cancer Care Plan?',
       description: 'Reviewing your diagnostic reports, genomic profiling, and treatment options with an experienced medical oncologist provides clarity and confidence before starting therapy.',
-      secondOpinionImage: 'med-2',
-      second_opinion_image_id: 'med-2',
+      secondOpinionImage: '',
+      second_opinion_image_id: '',
       primaryCtaLabel: 'Request Second Opinion Review'
     },
     final_cta: {
@@ -362,8 +362,7 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       description: 'Schedule a consultation or request a second opinion. Receive thoughtful, evidence-based recommendations tailored to your diagnosis.',
       primaryCtaLabel: 'Book Consultation',
       secondaryCtaLabel: 'Get Second Opinion',
-      finalCtaImage: 'med-final-cta-doc',
-      final_cta_image_id: 'med-final-cta-doc',
+      finalCtaImage: '',
       finalCtaImagePositionX: 50,
       finalCtaImagePositionY: 30,
       finalCtaAltText: 'Dr. Bhushan Parmar, Senior Consultant Medical Oncology'
@@ -386,9 +385,9 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       { id: 'final-cta', name: 'Final Consultation CTA', visible: true, order: 11 }
     ],
     how_can_help: [
-      { id: '1', title: 'Consultation & Diagnosis', description: 'Comprehensive evaluation of cancer diagnosis with advanced diagnostic reviews.', image_id: 'med-1' },
-      { id: '2', title: 'Systemic Therapy Planning', description: 'Tailored chemotherapy, targeted therapy, and immunotherapy protocols.', image_id: 'med-2' },
-      { id: '3', title: 'Second Opinion Reviews', description: 'Unbiased expert review of tumor molecular profiles and therapeutic options.', image_id: 'med-hero-doc' }
+      { id: '1', title: 'Consultation & Diagnosis', description: 'Comprehensive evaluation of cancer diagnosis with advanced diagnostic reviews.', image_id: '' },
+      { id: '2', title: 'Systemic Therapy Planning', description: 'Tailored chemotherapy, targeted therapy, and immunotherapy protocols.', image_id: '' },
+      { id: '3', title: 'Second Opinion Reviews', description: 'Unbiased expert review of tumor molecular profiles and therapeutic options.', image_id: '' }
     ],
     journey_steps: [
       { stepNumber: '01', title: 'Initial Consultation & Diagnostic Review', description: 'Comprehensive review of medical history, pathology reports, radiological scans, and tissue biomarkers.' },
@@ -397,89 +396,10 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
       { stepNumber: '04', title: 'Treatment & Active Monitoring', description: 'Safe administration of therapies with proactive toxicity monitoring and support.' }
     ]
   },
-  cancers: [
-    {
-      id: 'lung-cancer',
-      name: 'Lung Cancer',
-      slug: 'lung-cancer',
-      category: 'Solid Tumors',
-      image_id: 'med-3',
-      description: 'Comprehensive medical oncology care for Non-Small Cell Lung Cancer (NSCLC) and Small Cell Lung Cancer (SCLC) using EGFR, ALK, KRAS targeted therapies and immunotherapy.',
-      symptoms: ['Persistent cough', 'Shortness of breath', 'Chest pain', 'Coughing up blood'],
-      diagnosis: ['CT Scan', 'PET-CT', 'Biopsy', 'NGS Genomic Testing'],
-      treatments: ['Targeted Therapy', 'Immunotherapy', 'Chemotherapy']
-    },
-    {
-      id: 'breast-cancer',
-      name: 'Breast Cancer',
-      slug: 'breast-cancer',
-      category: 'Solid Tumors',
-      image_id: 'med-1',
-      description: 'Personalized treatment protocols for ER/PR positive, HER2 positive, and Triple Negative Breast Cancer (TNBC) using CDK4/6 inhibitors, HER2 targeted agents, and endocrine therapy.',
-      symptoms: ['Breast lump', 'Nipple discharge', 'Skin dimpling', 'Swollen lymph nodes'],
-      diagnosis: ['Mammography', 'Breast Ultrasound', 'Core Needle Biopsy', 'HER2/ER/PR Testing'],
-      treatments: ['CDK4/6 Inhibitors', 'Hormonal Therapy', 'Targeted Therapy', 'Chemotherapy']
-    },
-    {
-      id: 'gastrointestinal-cancer',
-      name: 'Gastrointestinal Cancers',
-      slug: 'gastrointestinal-cancers',
-      category: 'Solid Tumors',
-      image_id: 'med-2',
-      description: 'Expert medical management for Stomach, Colon, Rectal, Pancreatic, and Liver cancers including MSI-H immunotherapy and anti-VEGF / anti-EGFR targeted regimens.',
-      symptoms: ['Abdominal pain', 'Unexplained weight loss', 'Jaundice', 'Changes in bowel habits'],
-      diagnosis: ['Endoscopy / Colonoscopy', 'Biopsy', 'CT Abdomen', 'Tumor Markers (CEA, CA 19-9)'],
-      treatments: ['Systemic Chemotherapy', 'Targeted Immunotherapy', 'Neoadjuvant Protocols']
-    },
-    {
-      id: 'lymphoma-blood-cancers',
-      name: 'Lymphoma & Blood Cancers',
-      slug: 'lymphomas-and-blood-cancers',
-      category: 'Blood Malignancies',
-      image_id: 'med-hero-doc',
-      description: 'Advanced systemic treatment for Hodgkin Lymphoma, Non-Hodgkin Lymphoma (DLBCL, Follicular), Multiple Myeloma, and Chronic Leukemias.',
-      symptoms: ['Painless lymph node swelling', 'Fever & night sweats', 'Fatigue', 'Unexplained weight loss'],
-      diagnosis: ['Lymph Node Biopsy', 'Bone Marrow Aspirate', 'Flow Cytometry', 'PET-CT'],
-      treatments: ['Immunochemotherapy (R-CHOP)', 'Targeted Monoclonal Antibodies', 'Novel Oral Inhibitors']
-    }
-  ],
-  cancer_categories: [
-    { id: 'cat-solid', name: 'Solid Tumors', slug: 'solid-tumors', description: 'Cancers affecting solid organs including lung, breast, GI, head & neck, and GU cancers.', image_id: 'med-3' },
-    { id: 'cat-blood', name: 'Blood Malignancies', slug: 'blood-malignancies', description: 'Hematological cancers including lymphomas, multiple myeloma, and leukemias.', image_id: 'med-hero-doc' }
-  ],
+  cancers: [],
+  cancer_categories: [],
   cancer_pages: [],
-  treatments: [
-    {
-      id: 'chemotherapy-systemic',
-      title: 'Chemotherapy & Systemic Therapy',
-      slug: 'chemotherapy-systemic',
-      image_id: 'med-1',
-      summary: 'Evidence-based cytotoxic chemotherapy protocols tailored to tumor stage and patient performance status.',
-      details: 'Chemotherapy uses anti-cancer medications to stop the growth of rapidly dividing cancer cells throughout the body.',
-      benefits: ['Destroys micrometastatic disease', 'Shrinks tumors before surgery (Neoadjuvant)', 'Prevents recurrence (Adjuvant)'],
-      process: ['Pre-chemotherapy fitness check', 'Port-a-cath insertion', 'Monitored day-care infusion', 'Proactive anti-emetic care']
-    },
-    {
-      id: 'targeted-therapy',
-      title: 'Targeted Therapy & Kinase Inhibitors',
-      slug: 'targeted-therapy',
-      image_id: 'med-2',
-      summary: 'Precision oral and intravenous therapies engineered to block specific genetic mutations (EGFR, ALK, HER2, BRCA).',
-      details: 'Targeted therapy acts specifically on unique molecular drivers responsible for cancer cell proliferation while sparing normal cells.',
-      benefits: ['High therapeutic specificity', 'Fewer systemic side effects than traditional chemotherapy', 'Convenient oral administration for many drugs'],
-      process: ['Next-Generation Genomic Sequencing (NGS)', 'Identification of actionable mutations', 'Precision prescription and response monitoring']
-    },
-    {
-      id: 'immunotherapy',
-      title: 'Immunotherapy & Checkpoint Inhibitors',
-      slug: 'immunotherapy',
-      image_id: 'med-3',
-      summary: 'Advanced monoclonal antibodies (PD-1, PD-L1, CTLA-4 inhibitors) that empower the patient immune system to eradicate tumors.',
-      details: 'Immune checkpoint inhibitors release the brakes on immune T-cells, enabling them to recognize and attack cancer cells.',
-      benefits: ['Potential for long-lasting durable remissions', 'Effective across multiple cancer types', 'Favorable side-effect profile'],
-      process: ['PD-L1 / MSI biomarker evaluation', 'Infusion therapy every 2 to 4 weeks', 'Immune-related adverse event surveillance']
-    }
-  ],
+  treatments: [],
   body_explorer: [
     { id: 'head-neck', label: 'Head & Neck', x_percent: 50, y_percent: 18, title: 'Head & Neck Cancers', description: 'Oral cavity, larynx, pharynx, and thyroid cancers.', cta: 'View Specialty', display_order: 1, active: true },
     { id: 'chest-lungs', label: 'Chest & Lungs', x_percent: 50, y_percent: 32, title: 'Thoracic & Lung Cancers', description: 'NSCLC, SCLC, mesothelioma, and mediastinal tumors.', cta: 'View Specialty', display_order: 2, active: true },
@@ -487,68 +407,9 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
     { id: 'abdomen-gi', label: 'GI & Abdomen', x_percent: 50, y_percent: 48, title: 'Gastrointestinal Cancers', description: 'Stomach, colorectal, pancreatic, liver, and esophageal tumors.', cta: 'View Specialty', display_order: 4, active: true },
     { id: 'pelvis-gu', label: 'Pelvis & GU', x_percent: 50, y_percent: 62, title: 'Genitourinary & Pelvic Cancers', description: 'Prostate, bladder, renal, ovarian, and cervical cancers.', cta: 'View Specialty', display_order: 5, active: true }
   ],
-  locations: [
-    {
-      id: 'loc-primary-mohali',
-      hospitalName: 'Max Super Speciality Hospital / Fortis Cancer Institute',
-      department: 'Department of Medical Oncology & Onco Sciences',
-      addressLine1: 'Phase 6, Sector 56 (Near Civil Hospital)',
-      addressLine2: 'SAS Nagar (Mohali), Punjab',
-      city: 'Mohali',
-      state: 'Punjab',
-      pincode: '160055',
-      phone: '+91 98765 43210',
-      whatsapp: '+91 98765 43210',
-      email: 'oncology.drbhushan@gmail.com',
-      opd_timings: 'Monday to Saturday: 10:00 AM – 4:00 PM (By Prior Appointment)',
-      image_id: 'med-2',
-      is_primary: true,
-      is_active: true,
-      google_maps_url: 'https://maps.google.com/?q=Mohali+Punjab'
-    }
-  ],
-  blogs: [
-    {
-      id: 'blog-1',
-      title: 'Understanding Targeted Therapy in Modern Lung Cancer Care',
-      slug: 'understanding-targeted-therapy-lung-cancer',
-      category: 'Precision Oncology',
-      excerpt: 'How genomic profiling and biomarker testing have revolutionized Non-Small Cell Lung Cancer treatment.',
-      content: 'Targeted therapy represents one of the most significant advances in modern oncology over the past two decades...',
-      featured_image_id: 'med-3',
-      og_image_id: 'med-3',
-      publishedAt: '2025-02-15',
-      author: 'Dr. Bhushan Parmar',
-      readTime: '5 min read',
-      tags: ['Lung Cancer', 'Targeted Therapy', 'Precision Medicine'],
-      isPublished: true
-    },
-    {
-      id: 'blog-2',
-      title: 'Demystifying Immunotherapy: How It Works and Who Benefits',
-      slug: 'demystifying-immunotherapy-how-it-works',
-      category: 'Immunotherapy',
-      excerpt: 'An evidence-based guide to immune checkpoint inhibitors (PD-1/PD-L1) for patients and families.',
-      content: 'Unlike traditional chemotherapy which attacks rapidly dividing cells, immunotherapy empowers the bodys immune system to recognize and eliminate cancer cells...',
-      featured_image_id: 'med-1',
-      og_image_id: 'med-1',
-      publishedAt: '2025-03-01',
-      author: 'Dr. Bhushan Parmar',
-      readTime: '6 min read',
-      tags: ['Immunotherapy', 'Cancer Treatment', 'Patient Education'],
-      isPublished: true
-    }
-  ],
-  faqs: [
-    {
-      question: 'What is the difference between a Medical Oncologist and a Surgical Oncologist?',
-      answer: 'A Medical Oncologist specializes in systemic cancer treatments such as chemotherapy, targeted therapy, and immunotherapy that circulate throughout the bloodstream. A Surgical Oncologist specializes in surgically removing localized tumors.'
-    },
-    {
-      question: 'How do I request a Second Opinion with Dr. Bhushan Parmar?',
-      answer: 'You can submit your pathology reports, radiological scans (CT/PET-CT), and treatment history via our website enquiry form or WhatsApp.'
-    }
-  ],
+  locations: [],
+  blogs: [],
+  faqs: [],
   testimonials: [],
   navigation: [
     { id: 'nav-home', label: 'Home', url: '/', order: 1, visible: true },
@@ -559,118 +420,19 @@ const defaultDatabaseSeed: D1DatabaseSchema = {
     { id: 'nav-contact', label: 'Contact', url: '/#contact', order: 6, visible: true }
   ],
   footer: {
-    aboutText: 'Dr. Bhushan Parmar is a Senior Consultant in Medical Oncology dedicated to providing evidence-based, compassionate cancer care.',
+    aboutText: '',
     emergencyNotice: 'For medical emergencies, please visit the nearest hospital emergency department immediately.',
-    copyrightText: '© 2025 Dr. Bhushan Parmar. All rights reserved.',
-    quickLinks: [
-      { label: 'Home', url: '/' },
-      { label: 'About Doctor', url: '/#about' },
-      { label: 'Cancer Specialties', url: '/#cancers' },
-      { label: 'Systemic Treatments', url: '/#treatments' },
-      { label: 'Blogs', url: '/#blogs' },
-      { label: 'Contact', url: '/#contact' }
-    ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com',
-      facebook: 'https://facebook.com',
-      twitter: 'https://twitter.com',
-      youtube: 'https://youtube.com'
-    }
+    copyrightText: '© 2026 Dr. Bhushan Parmar. All rights reserved.',
+    quickLinks: [],
+    socialLinks: {}
   },
-  media: [
-    {
-      id: 'med-hero-doc',
-      storage_key: 'website/doctor/hero/dr-bhushan-parmar-hero.webp',
-      original_name: 'dr-bhushan-parmar-hero.webp',
-      mime_type: 'image/jpeg',
-      file_size: 420000,
-      width: 1200,
-      height: 1200,
-      alt_text: 'Dr. Bhushan Parmar, Senior Consultant Medical Oncology - Primary Hero Portrait',
-      category: 'Doctor Photos',
-      public_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=80',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      uploaded_by: 'admin@drbhushanparmar.com'
-    },
-    {
-      id: 'med-1',
-      storage_key: 'website/doctor/about/dr-bhushan-parmar-about.webp',
-      original_name: 'dr-bhushan-parmar-about.webp',
-      mime_type: 'image/jpeg',
-      file_size: 380000,
-      width: 1200,
-      height: 800,
-      alt_text: 'Dr. Bhushan Parmar in Clinical Oncology Consultation',
-      category: 'Doctor Photos',
-      public_url: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=1200&q=80',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      uploaded_by: 'admin@drbhushanparmar.com'
-    },
-    {
-      id: 'med-2',
-      storage_key: 'website/doctor/second-opinion/dr-bhushan-parmar-desk.webp',
-      original_name: 'dr-bhushan-parmar-desk.webp',
-      mime_type: 'image/jpeg',
-      file_size: 360000,
-      width: 1200,
-      height: 800,
-      alt_text: 'Dr. Bhushan Parmar Reviewing Cancer Diagnostic Reports',
-      category: 'Doctor Photos',
-      public_url: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=1200&q=80',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      uploaded_by: 'admin@drbhushanparmar.com'
-    },
-    {
-      id: 'med-3',
-      storage_key: 'website/backgrounds/anatomy-illustration.svg',
-      original_name: 'medical_translucent_anatomy_fullbody.svg',
-      mime_type: 'image/svg+xml',
-      file_size: 15000,
-      width: 400,
-      height: 700,
-      alt_text: 'Translucent full-body human medical anatomical visualization',
-      category: 'Backgrounds',
-      public_url: '/assets/images/medical_translucent_anatomy_fullbody.svg',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      uploaded_by: 'admin@drbhushanparmar.com'
-    },
-    {
-      id: 'med-final-cta-doc',
-      storage_key: 'website/homepage/final-cta/dr-bhushan-final-cta.webp',
-      original_name: 'dr-bhushan-final-cta.webp',
-      mime_type: 'image/jpeg',
-      file_size: 350000,
-      width: 1200,
-      height: 800,
-      alt_text: 'Dr. Bhushan Parmar, Senior Consultant Medical Oncology - Final CTA Portrait',
-      category: 'Doctor Photos',
-      public_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=85',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      uploaded_by: 'admin@drbhushanparmar.com'
-    }
-  ],
+  media: [],
   media_slots: initialMediaSlots,
   enquiries: [],
   second_opinion_requests: [],
   second_opinion_files: [],
   activity_logs: [],
-  admin_users: [
-    {
-      id: 'usr-1',
-      email: 'admin@oncology.care',
-      name: 'Dr. Bhushan Parmar',
-      role: 'super_admin',
-      password_hash: 'b9ed0fdc60a29ecd4b13bf1d8fea2f96dea5e0f64b4e67c4cd62cd852a97c720',
-      salt: 's_adm_210k',
-      status: 'active',
-      createdAt: '2025-01-01'
-    }
-  ],
+  admin_users: [],
   admin_sessions: [],
   updated_at: new Date().toISOString()
 };

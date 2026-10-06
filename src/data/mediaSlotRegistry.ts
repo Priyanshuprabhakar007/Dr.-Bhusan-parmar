@@ -88,7 +88,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     recommendedDimensions: '1200 × 630px',
     ratio: 'Landscape',
     required: true,
-    defaultFallbackUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&q=80',
+    defaultFallbackUrl: '',
     usageContext: 'Meta og:image meta tag for social platform share cards'
   },
 
@@ -393,7 +393,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     ratio: 'Portrait',
     allowMobileVariant: true,
     required: true,
-    defaultFallbackUrl: 'med-final-cta-doc',
+    defaultFallbackUrl: '',
     usageContext: 'Final appointment booking banner on homepage & bottom of pages'
   },
   {
@@ -405,7 +405,7 @@ export const MEDIA_SLOT_REGISTRY: MediaSlotDefinition[] = [
     section: 'Final CTA Mobile',
     recommendedDimensions: '800 × 1000px',
     ratio: 'Portrait',
-    defaultFallbackUrl: 'med-final-cta-doc',
+    defaultFallbackUrl: '',
     usageContext: 'Final appointment banner on mobile viewports'
   },
 

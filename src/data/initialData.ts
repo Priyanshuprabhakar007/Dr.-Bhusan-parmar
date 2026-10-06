@@ -85,10 +85,10 @@ export const initialPracticeLocation: PracticeLocation = {
   pincode: '160055',
   consultationTimings: 'Monday to Saturday: 10:00 AM – 4:00 PM (By Prior Appointment)',
   daysAvailable: 'Monday – Saturday',
-  phonePrimary: '+91 98765 43210',
-  phoneSecondary: '+91 172 555 0199',
-  whatsappNumber: '+91 98765 43210',
-  emailContact: 'oncology.drbhushan@gmail.com',
+  phonePrimary: '',
+  phoneSecondary: '',
+  whatsappNumber: '',
+  emailContact: '',
   googleMapsEmbedUrl:
     'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d109741.02092147314!2d76.67137812975253!3d30.735062635905103!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390fe451d8be8d05%3A0x6a2c262c58a69d12!2sMohali%2C%20Punjab!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin',
   googleMapsDirectionsUrl: 'https://maps.google.com/?q=Mohali+Punjab'

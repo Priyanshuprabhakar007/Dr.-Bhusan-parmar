@@ -34,8 +34,8 @@ export const ContactSection: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cleanPhone = (practiceLocation?.phonePrimary || '+91 98765 43210').replace(/[^\d+]/g, '');
-  const cleanWhatsApp = (practiceLocation?.whatsappNumber || '919876543210').replace(/[^\d]/g, '');
+  const cleanPhone = (practiceLocation?.phonePrimary || '').replace(/[^\d+]/g, '');
+  const cleanWhatsApp = (practiceLocation?.whatsappNumber || '').replace(/[^\d]/g, '');
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,7 +310,7 @@ export const ContactSection: React.FC = () => {
                       <input
                         type="tel"
                         required
-                        placeholder="+91 98765 43210"
+                        placeholder="Enter contact number"
                         value={formData.phone}
                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"

@@ -57,9 +57,26 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   const widgetIdRef = useRef<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
+  const onTokenRef = useRef(onToken);
+  const onExpiredRef = useRef(onExpired);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
+
+  useEffect(() => {
+    onExpiredRef.current = onExpired;
+  }, [onExpired]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   const rawSiteKey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim() || '';
   const isConfigured = rawSiteKey && rawSiteKey !== 'NOT_CONFIGURED';
 
+  // 1. Script loading effect (depends only on isConfigured)
   useEffect(() => {
     if (!isConfigured) return;
 
@@ -72,14 +89,17 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       })
       .catch((err) => {
         console.warn('Failed to load Cloudflare Turnstile script:', err);
-        if (onError) onError();
+        if (isMounted) {
+          onErrorRef.current?.();
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [isConfigured, onError]);
+  }, [isConfigured]);
 
+  // 2. Widget render effect (strictly decoupled from callback prop identities)
   useEffect(() => {
     if (!isConfigured || !isReady || !containerRef.current || !window.turnstile) {
       return;
@@ -102,19 +122,22 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         theme: 'auto',
         size: 'flexible',
         callback: (token: string) => {
-          onToken(token);
+          onTokenRef.current(token);
         },
         'expired-callback': () => {
-          if (onExpired) onExpired();
+          onExpiredRef.current?.();
         },
         'error-callback': () => {
-          if (onError) onError();
+          onErrorRef.current?.();
+        },
+        'timeout-callback': () => {
+          onExpiredRef.current?.();
         }
       });
       widgetIdRef.current = widgetId;
     } catch (renderErr) {
       console.warn('Turnstile render failed:', renderErr);
-      if (onError) onError();
+      onErrorRef.current?.();
     }
 
     return () => {
@@ -127,9 +150,9 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         widgetIdRef.current = null;
       }
     };
-  }, [isConfigured, isReady, action, rawSiteKey, onToken, onExpired, onError]);
+  }, [isConfigured, isReady, action, rawSiteKey]);
 
-  // Handle reset signal changes
+  // 3. Reset effect (resets widget without remounting DOM)
   useEffect(() => {
     if (resetSignal > 0 && widgetIdRef.current && window.turnstile) {
       try {

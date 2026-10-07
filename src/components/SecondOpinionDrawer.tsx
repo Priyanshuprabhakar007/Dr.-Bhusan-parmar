@@ -206,10 +206,6 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
         website: formData.honeypot
       });
 
-      // Clear Turnstile token immediately after consumption
-      setTurnstileToken('');
-      setTurnstileResetSignal(prev => prev + 1);
-
       if (!requestCreated) {
         setErrorMessage('Could not submit your second opinion request. Please try again.');
         return;

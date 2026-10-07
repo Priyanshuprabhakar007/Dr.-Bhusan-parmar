@@ -82,20 +82,28 @@ async function verifyTurnstileDev(
       return false;
     }
 
-    if (result.action && result.action !== expectedAction) {
+    if (result.action !== expectedAction) {
       return false;
     }
 
-    if (!isTestSecret && process.env.TURNSTILE_ALLOWED_HOSTNAMES && process.env.TURNSTILE_ALLOWED_HOSTNAMES.trim()) {
-      const allowedHostnames = process.env.TURNSTILE_ALLOWED_HOSTNAMES
+    if (!isTestSecret) {
+      const rawHostnames = process.env.TURNSTILE_ALLOWED_HOSTNAMES?.trim() || '';
+      if (!rawHostnames) {
+        return false;
+      }
+
+      const allowedHostnames = rawHostnames
         .split(',')
         .map(h => h.trim().toLowerCase())
         .filter(Boolean);
-      if (allowedHostnames.length > 0) {
-        const resultHostname = (result.hostname || '').toLowerCase().trim();
-        if (!resultHostname || !allowedHostnames.includes(resultHostname)) {
-          return false;
-        }
+
+      if (allowedHostnames.length === 0) {
+        return false;
+      }
+
+      const resultHostname = (result.hostname || '').trim().toLowerCase();
+      if (!resultHostname || !allowedHostnames.includes(resultHostname)) {
+        return false;
       }
     }
 
@@ -1936,10 +1944,17 @@ async function startServer() {
 
   // GET /api/admin/turnstile-status
   app.get('/api/admin/turnstile-status', requireRole(['super_admin', 'content_manager', 'enquiry_manager']), (req, res) => {
+    const isTestSecret = process.env.TURNSTILE_SECRET_KEY?.startsWith('1x0000000000000000000000000000000AA') || false;
+    const enabled = process.env.TURNSTILE_ENABLED === 'true';
+    const secretConfigured = Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.TURNSTILE_SECRET_KEY.trim());
+    const hostnameConfigured = Boolean(process.env.TURNSTILE_ALLOWED_HOSTNAMES && process.env.TURNSTILE_ALLOWED_HOSTNAMES.trim());
+    const ready = enabled && secretConfigured && (isTestSecret || hostnameConfigured);
+
     res.json({
-      enabled: process.env.TURNSTILE_ENABLED === 'true',
-      secretConfigured: Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.TURNSTILE_SECRET_KEY.trim()),
-      hostnameConfigured: Boolean(process.env.TURNSTILE_ALLOWED_HOSTNAMES && process.env.TURNSTILE_ALLOWED_HOSTNAMES.trim())
+      enabled,
+      secretConfigured,
+      hostnameConfigured,
+      ready
     });
   });
 

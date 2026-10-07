@@ -622,13 +622,130 @@ function normalizeMediaSlot(row: any) {
   };
 }
 
+function parsePublicMediaKey(pathname: string): string | null {
+  const prefix = '/api/public/media/';
+  if (!pathname.startsWith(prefix)) return null;
+
+  const raw = pathname.slice(prefix.length);
+  if (!raw) return null;
+
+  try {
+    const segments = raw
+      .split('/')
+      .map(segment => decodeURIComponent(segment));
+
+    if (
+      segments.some(segment =>
+        !segment ||
+        segment === '.' ||
+        segment === '..' ||
+        segment.includes('\\') ||
+        /[\u0000-\u001F\u007F]/.test(segment)
+      )
+    ) {
+      return null;
+    }
+
+    return segments.join('/');
+  } catch {
+    return null;
+  }
+}
+
+const ALLOWED_MEDIA_CATEGORIES = [
+  'Branding',
+  'Doctor Photos',
+  'Homepage',
+  'Patient Care',
+  'Cancer Care',
+  'Treatments',
+  'Body Explorer',
+  'Second Opinion',
+  'Blogs / Resources',
+  'Locations',
+  'SEO / Social'
+];
+
+const MIME_TO_EXTENSION: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/avif': 'avif'
+};
+
+function isValidImageSignature(mimeType: string, buffer: ArrayBuffer): boolean {
+  if (!buffer || buffer.byteLength < 12) return false;
+  const bytes = new Uint8Array(buffer);
+
+  // JPEG: FF D8 FF
+  if (mimeType === 'image/jpeg') {
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (mimeType === 'image/png') {
+    return (
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47 &&
+      bytes[4] === 0x0d &&
+      bytes[5] === 0x0a &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0x0a
+    );
+  }
+
+  // WEBP: bytes 0-3 = RIFF, bytes 8-11 = WEBP
+  if (mimeType === 'image/webp') {
+    const isRiff =
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46; // RIFF
+    const isWebp =
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50; // WEBP
+    return isRiff && isWebp;
+  }
+
+  // AVIF: ISO BMFF header containing 'ftyp' and compatible brand 'avif' or 'avis' within the initial header bytes
+  if (mimeType === 'image/avif') {
+    const maxLen = Math.min(bytes.length, 64);
+    let str = '';
+    for (let i = 0; i < maxLen; i++) {
+      str += String.fromCharCode(bytes[i]);
+    }
+    const hasFtyp = str.includes('ftyp');
+    const hasAvifBrand = str.includes('avif') || str.includes('avis');
+    return hasFtyp && hasAvifBrand;
+  }
+
+  return false;
+}
+
+function parseMediaDimension(value: any): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  if (!Number.isInteger(num) || num <= 0 || num > 20000) {
+    return null;
+  }
+  return num;
+}
+
 function buildPublicMediaUrl(storageKey: string, env: Env, workerOrigin: string): string {
   const cleanKey = storageKey.replace(/^\/+/, '');
+  const encodedKey = cleanKey
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/');
   const customOverride = env.PUBLIC_MEDIA_URL?.trim();
   if (customOverride) {
-    return `${customOverride.replace(/\/$/, '')}/${cleanKey}`;
+    return `${customOverride.replace(/\/$/, '')}/${encodedKey}`;
   }
-  return `${workerOrigin}/api/public/media/${cleanKey}`;
+  return `${workerOrigin}/api/public/media/${encodedKey}`;
 }
 
 function resolveMediaPublicUrl(value: string | undefined | null, env: Env, workerOrigin: string): string {
@@ -725,9 +842,8 @@ export default {
         if (request.method !== 'GET' && request.method !== 'HEAD') {
           return json({ error: 'Method not allowed' }, 405);
         }
-        const rawKey = pathname.replace(/^\/api\/public\/media\/?/, '');
-        const storageKey = decodeURIComponent(rawKey).trim();
-        if (!storageKey || storageKey.includes('..') || storageKey.startsWith('/')) {
+        const storageKey = parsePublicMediaKey(pathname);
+        if (!storageKey) {
           return json({ error: 'Invalid media key' }, 400);
         }
 
@@ -738,6 +854,8 @@ export default {
         mediaHeaders.set('Access-Control-Allow-Origin', isAllowedOrigin ? requestOrigin : '*');
         mediaHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
         mediaHeaders.set('Vary', 'Origin');
+        mediaHeaders.set('X-Content-Type-Options', 'nosniff');
+        mediaHeaders.set('Cross-Origin-Resource-Policy', 'cross-origin');
 
         object.writeHttpMetadata(mediaHeaders);
         if (!mediaHeaders.get('Content-Type')) {
@@ -2126,6 +2244,9 @@ export default {
 
         // MEDIA MANAGEMENT & SAFE DELETE (NO FORCE BYPASS)
         if (pathname === '/api/admin/media' && request.method === 'GET') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const category = url.searchParams.get('category');
           const q = url.searchParams.get('q');
           let sql = 'SELECT * FROM media';
@@ -2151,6 +2272,9 @@ export default {
         }
 
         if (pathname === '/api/admin/media/upload' && request.method === 'POST') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const formData = await request.formData();
           const file = formData.get('file') as File | null;
           if (!file) return json({ error: 'No file uploaded' }, 400);
@@ -2163,54 +2287,90 @@ export default {
             return json({ error: 'File size exceeds maximum permitted limit (15MB).' }, 400);
           }
 
-          const category = (formData.get('category') as string) || 'Doctor Photos';
-          const subfolder = (formData.get('subfolder') as string) || '';
-          const altText = (formData.get('alt_text') as string) || '';
-          const isDecorative = formData.get('is_decorative') === 'true' ? 1 : 0;
-          const width = Number(formData.get('width')) || null;
-          const height = Number(formData.get('height')) || null;
+          const rawCategory = formData.get('category');
+          let category = 'Doctor Photos';
+          if (typeof rawCategory === 'string' && rawCategory.trim()) {
+            const trimmedCategory = rawCategory.trim();
+            if (!ALLOWED_MEDIA_CATEGORIES.includes(trimmedCategory)) {
+              return json({ error: 'Invalid media category' }, 400);
+            }
+            category = trimmedCategory;
+          }
 
-          const ext = file.name.split('.').pop()?.toLowerCase() || 'webp';
-          const timestamp = Date.now().toString(36);
-          const randomStr = Math.random().toString(36).substring(2, 8);
-          const cleanCat = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          const cleanSub = subfolder ? `${subfolder.toLowerCase().replace(/[^a-z0-9]/g, '-')}/` : '';
-          const storageKey = `website/${cleanCat}/${cleanSub}${timestamp}-${randomStr}.${ext}`;
+          const rawAlt = formData.get('alt_text');
+          const altText = typeof rawAlt === 'string' ? rawAlt.trim() : '';
+          if (altText.length > 300) {
+            return json({ error: 'Alt text is too long.' }, 400);
+          }
+
+          const width = parseMediaDimension(formData.get('width'));
+          const height = parseMediaDimension(formData.get('height'));
+          const isDecorative = formData.get('is_decorative') === 'true' ? 1 : 0;
+          const subfolder = (formData.get('subfolder') as string) || '';
 
           const arrayBuffer = await file.arrayBuffer();
-          await env.PUBLIC_MEDIA.put(storageKey, arrayBuffer, {
-            httpMetadata: { contentType: file.type || 'image/webp' },
-            customMetadata: { originalName: file.name, category }
-          });
+          if (!isValidImageSignature(file.type, arrayBuffer)) {
+            return json({ error: 'File content does not match the declared image format.' }, 400);
+          }
+
+          const verifiedExtension = MIME_TO_EXTENSION[file.type] || 'webp';
+          const uuid = crypto.randomUUID();
+          const mediaId = `med-${uuid}`;
+          const cleanCat = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const cleanSub = subfolder ? `${subfolder.toLowerCase().replace(/[^a-z0-9]/g, '-')}/` : '';
+          const storageKey = `website/${cleanCat}/${cleanSub}${uuid}.${verifiedExtension}`;
 
           const publicUrl = buildPublicMediaUrl(storageKey, env, url.origin);
-          const mediaId = `med-${Date.now()}-${randomStr}`;
 
-          await env.DB.prepare(
-            `INSERT INTO media (id, storage_key, original_name, mime_type, file_size, width, height, alt_text, category, public_url, is_decorative)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).bind(mediaId, storageKey, file.name, file.type || 'image/webp', file.size, width, height, altText, category, publicUrl, isDecorative).run();
+          let uploadedToR2 = false;
+          try {
+            await env.PUBLIC_MEDIA.put(storageKey, arrayBuffer, {
+              httpMetadata: { contentType: file.type || 'image/webp' },
+              customMetadata: { originalName: file.name, category }
+            });
+            uploadedToR2 = true;
 
-          return json({
-            success: true,
-            message: 'Uploaded to R2 & recorded in D1',
-            media: {
-              id: mediaId,
-              storage_key: storageKey,
-              original_name: file.name,
-              mime_type: file.type,
-              file_size: file.size,
-              width,
-              height,
-              alt_text: altText,
-              category,
-              public_url: publicUrl,
-              created_at: new Date().toISOString()
+            await env.DB.prepare(
+              `INSERT INTO media (id, storage_key, original_name, mime_type, file_size, width, height, alt_text, category, public_url, is_decorative)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(mediaId, storageKey, file.name, file.type || 'image/webp', file.size, width, height, altText, category, publicUrl, isDecorative).run();
+
+            return json({
+              success: true,
+              message: 'Uploaded to R2 & recorded in D1',
+              media: {
+                id: mediaId,
+                storage_key: storageKey,
+                original_name: file.name,
+                mime_type: file.type,
+                file_size: file.size,
+                width,
+                height,
+                alt_text: altText,
+                category,
+                public_url: publicUrl,
+                created_at: new Date().toISOString()
+              }
+            }, 201);
+          } catch (error) {
+            if (uploadedToR2) {
+              try {
+                await env.PUBLIC_MEDIA.delete(storageKey);
+              } catch {
+                console.warn('Failed to rollback orphaned R2 upload');
+              }
             }
-          }, 201);
+
+            return json({
+              error: 'Could not save media asset.'
+            }, 500);
+          }
         }
 
         if (pathname.startsWith('/api/admin/media/usage/')) {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const id = pathname.replace('/api/admin/media/usage/', '');
           const item = await env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(id).first<any>();
           if (!item) return json({ error: 'Media not found' }, 404);
@@ -2229,6 +2389,9 @@ export default {
         }
 
         if (pathname.startsWith('/api/admin/media/') && request.method === 'DELETE') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const id = pathname.replace('/api/admin/media/', '');
           const item = await env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(id).first<any>();
           if (!item) return json({ error: 'Media item not found' }, 404);
@@ -2257,13 +2420,21 @@ export default {
             return json({ error: 'Media is in use across the application', usages: totalUsages }, 409);
           }
 
-          await env.PUBLIC_MEDIA.delete(item.storage_key);
+          try {
+            await env.PUBLIC_MEDIA.delete(item.storage_key);
+          } catch (r2Err) {
+            return json({ error: 'Could not delete media asset from storage.' }, 500);
+          }
+
           await env.DB.prepare('DELETE FROM media WHERE id = ?').bind(id).run();
           return json({ success: true, message: 'Media removed from R2 and D1' });
         }
 
         // MEDIA SLOTS
         if (pathname === '/api/admin/media-slots' && request.method === 'GET') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const slots = await env.DB.prepare('SELECT * FROM media_slots ORDER BY section ASC').all();
           const slotMap: Record<string, any> = {};
           for (const s of slots.results || []) {
@@ -2274,6 +2445,9 @@ export default {
         }
 
         if (pathname.startsWith('/api/admin/media-slots/') && !pathname.endsWith('/publish') && request.method === 'PUT') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const slotKey = pathname.replace('/api/admin/media-slots/', '');
           const body = (await request.json().catch(() => ({}))) as any;
           const { draftValue, altText, focalPoint, mobileValue } = body;
@@ -2289,6 +2463,9 @@ export default {
         }
 
         if (pathname.startsWith('/api/admin/media-slots/') && pathname.endsWith('/publish') && request.method === 'POST') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           const slotKey = pathname.replace('/api/admin/media-slots/', '').replace('/publish', '');
           await env.DB.prepare(
             `UPDATE media_slots SET published_value = draft_value, status = 'published', updated_at = CURRENT_TIMESTAMP WHERE slot_key = ?`
@@ -2299,6 +2476,9 @@ export default {
         }
 
         if (pathname === '/api/admin/media-slots/publish-all' && request.method === 'POST') {
+          if (!isContentManager) {
+            return json({ error: 'Forbidden' }, 403);
+          }
           await env.DB.prepare(
             `UPDATE media_slots SET published_value = draft_value, status = 'published', updated_at = CURRENT_TIMESTAMP WHERE status = 'draft_saved'`
           ).run();

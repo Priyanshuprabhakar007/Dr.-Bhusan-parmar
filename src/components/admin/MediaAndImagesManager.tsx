@@ -20,7 +20,8 @@ import {
   AlertCircle,
   HelpCircle,
   X,
-  Stethoscope
+  Stethoscope,
+  Info
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { ImagePickerField } from './ImagePickerField';
@@ -269,16 +270,16 @@ export const MediaAndImagesManager: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left pb-24 relative">
-      {/* ENV WARNING BANNER IF R2 PUBLIC URL MISSING */}
+      {/* ENV STATUS BANNER */}
       {isMediaUrlEnvMissing && (
-        <div className="p-4 rounded-2xl bg-amber-950/80 border border-amber-500/60 text-amber-200 text-xs flex items-start space-x-3 shadow-lg">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/60 text-slate-300 text-xs flex items-start space-x-3 shadow-lg">
+          <Info className="w-5 h-5 text-[#18B8B4] shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="font-bold text-amber-300 text-sm">
-              Configuration Notice: VITE_PUBLIC_MEDIA_URL is not configured
+            <h4 className="font-bold text-white text-sm">
+              R2 Public Media Storage: Powered by Cloudflare Worker API
             </h4>
-            <p className="text-amber-200/90 leading-relaxed">
-              Cloudflare R2 public media domain is not set in environment variables. Uploaded image keys will use local relative paths or direct R2 key fallbacks.
+            <p className="text-slate-300/90 leading-relaxed">
+              Public images are dynamically routed and served through the Worker endpoint (<code className="px-1.5 py-0.5 rounded bg-slate-800 text-[#18B8B4] text-[11px]">/api/public/media/&lt;key&gt;</code>) directly from R2 bucket <code className="text-slate-200">dr-bhushan-public-media</code> without requiring a custom domain.
             </p>
           </div>
         </div>

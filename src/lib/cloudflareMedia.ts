@@ -34,7 +34,7 @@ export interface CloudflareUploadResult {
 export const PUBLIC_MEDIA_DOMAIN =
   (typeof import.meta !== 'undefined' &&
     (import.meta.env?.VITE_PUBLIC_MEDIA_URL || import.meta.env?.VITE_PUBLIC_MEDIA_DOMAIN)) ||
-  'https://media.drbhushanparmar.com';
+  '';
 
 /**
  * Universal Media URL Resolver
@@ -77,7 +77,11 @@ export function getMediaUrl(
       const pub = matched.public_url || matched.url;
       if (pub && typeof pub === 'string' && pub.trim()) {
         const cleanPub = pub.trim();
-        if (!cleanPub.includes('.r2.dev/') && !cleanPub.includes('media.drbhushanparmar.com')) {
+        if (cleanPub.includes('media.drbhushanparmar.com')) {
+          const extractedKey = cleanPub.replace(/^https?:\/\/media\.drbhushanparmar\.com\/?/, '');
+          return getMediaUrl(extractedKey, mediaAssets, options);
+        }
+        if (!cleanPub.includes('.r2.dev/')) {
           return cleanPub;
         }
       }
@@ -110,7 +114,7 @@ export function getMediaUrl(
     if (base && !base.includes('localhost') && base.startsWith('http')) {
       return `${base}/${cleanKey}`;
     }
-    return `/api/public/media/${cleanKey}`;
+    return apiUrl(`/api/public/media/${cleanKey}`);
   }
 
   if (cleanKey.startsWith('uploads/')) {

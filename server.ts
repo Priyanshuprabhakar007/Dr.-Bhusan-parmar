@@ -1874,7 +1874,7 @@ async function startServer() {
         height: height || 800,
         alt_text: altText || 'Dr. Bhushan Parmar Medical Oncology',
         category: category || 'General',
-        public_url: `https://media.drbhushanparmar.com/${storageKey}`,
+        public_url: `/api/public/media/${storageKey}`,
         uploaded_by: 'admin@drbhushanparmar.com',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

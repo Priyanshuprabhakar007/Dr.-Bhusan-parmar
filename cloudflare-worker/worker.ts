@@ -38,7 +38,7 @@ export interface Env {
   DB: D1Database;
   PUBLIC_MEDIA: R2Bucket;
   PRIVATE_REPORTS: R2Bucket;
-  PUBLIC_MEDIA_URL: string;
+  PUBLIC_MEDIA_URL?: string;
   ENVIRONMENT: string;
   ALLOWED_ORIGIN?: string;
   ALLOWED_ORIGINS?: string;
@@ -622,6 +622,32 @@ function normalizeMediaSlot(row: any) {
   };
 }
 
+function buildPublicMediaUrl(storageKey: string, env: Env, workerOrigin: string): string {
+  const cleanKey = storageKey.replace(/^\/+/, '');
+  const customOverride = env.PUBLIC_MEDIA_URL?.trim();
+  if (customOverride) {
+    return `${customOverride.replace(/\/$/, '')}/${cleanKey}`;
+  }
+  return `${workerOrigin}/api/public/media/${cleanKey}`;
+}
+
+function resolveMediaPublicUrl(value: string | undefined | null, env: Env, workerOrigin: string): string {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.includes('media.drbhushanparmar.com')) {
+    const key = trimmed.replace(/^https?:\/\/media\.drbhushanparmar\.com\/?/, '');
+    return buildPublicMediaUrl(key, env, workerOrigin);
+  }
+
+  if (trimmed.startsWith('website/')) {
+    return buildPublicMediaUrl(trimmed, env, workerOrigin);
+  }
+
+  return trimmed;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -696,14 +722,55 @@ export default {
       }
 
       if (pathname.startsWith('/api/public/media/')) {
-        const storageKey = pathname.replace('/api/public/media/', '');
+        if (request.method !== 'GET' && request.method !== 'HEAD') {
+          return json({ error: 'Method not allowed' }, 405);
+        }
+        const rawKey = pathname.replace(/^\/api\/public\/media\/?/, '');
+        const storageKey = decodeURIComponent(rawKey).trim();
+        if (!storageKey || storageKey.includes('..') || storageKey.startsWith('/')) {
+          return json({ error: 'Invalid media key' }, 400);
+        }
+
         const object = await env.PUBLIC_MEDIA.get(storageKey);
         if (!object) return json({ error: 'Media asset not found in R2' }, 404);
-        const headers = new Headers(corsHeaders);
-        object.writeHttpMetadata(headers);
-        if (object.httpEtag) headers.set('etag', object.httpEtag);
-        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-        return new Response(object.body, { headers });
+
+        const mediaHeaders = new Headers();
+        mediaHeaders.set('Access-Control-Allow-Origin', isAllowedOrigin ? requestOrigin : '*');
+        mediaHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        mediaHeaders.set('Vary', 'Origin');
+
+        object.writeHttpMetadata(mediaHeaders);
+        if (!mediaHeaders.get('Content-Type')) {
+          const ext = storageKey.split('.').pop()?.toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            webp: 'image/webp',
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            svg: 'image/svg+xml',
+            avif: 'image/avif',
+            gif: 'image/gif',
+            ico: 'image/x-icon',
+            pdf: 'application/pdf',
+            mp4: 'video/mp4'
+          };
+          mediaHeaders.set('Content-Type', (ext && mimeTypes[ext]) || 'application/octet-stream');
+        }
+
+        if (object.httpEtag) {
+          mediaHeaders.set('etag', object.httpEtag);
+          if (request.headers.get('if-none-match') === object.httpEtag) {
+            return new Response(null, { status: 304, headers: mediaHeaders });
+          }
+        }
+
+        mediaHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+
+        if (request.method === 'HEAD') {
+          return new Response(null, { headers: mediaHeaders });
+        }
+
+        return new Response(object.body, { headers: mediaHeaders });
       }
 
       // AUTHENTICATION
@@ -819,18 +886,21 @@ export default {
         }
 
         const mediaSlots: Record<string, any> = {};
-        const publicDomain = (env.PUBLIC_MEDIA_URL || 'https://media.drbhushanparmar.com').replace(/\/$/, '');
 
         for (const slot of slotsRes.results || []) {
           const norm = normalizeMediaSlot(slot);
           if (norm) {
             let pubVal = norm.publishedValue;
-            if (pubVal && (pubVal.startsWith('med-') || !pubVal.startsWith('http'))) {
-              const mediaRow = await env.DB.prepare('SELECT public_url FROM media WHERE id = ? OR storage_key = ?').bind(pubVal, pubVal).first<any>();
-              if (mediaRow?.public_url) {
-                pubVal = mediaRow.public_url;
+            if (pubVal) {
+              if (pubVal.startsWith('med-')) {
+                const mediaRow = await env.DB.prepare('SELECT storage_key, public_url FROM media WHERE id = ?').bind(pubVal).first<any>();
+                if (mediaRow?.storage_key) {
+                  pubVal = buildPublicMediaUrl(mediaRow.storage_key, env, url.origin);
+                } else if (mediaRow?.public_url) {
+                  pubVal = resolveMediaPublicUrl(mediaRow.public_url, env, url.origin);
+                }
               } else {
-                pubVal = `${publicDomain}/${pubVal}`;
+                pubVal = resolveMediaPublicUrl(pubVal, env, url.origin);
               }
             }
             mediaSlots[norm.slotKey] = isPreviewRequest ? { ...norm, publishedValue: pubVal } : {
@@ -851,6 +921,9 @@ export default {
           if (typeof doctorProfile.qualifications === 'string') try { doctorProfile.qualifications = JSON.parse(doctorProfile.qualifications); } catch {}
           if (typeof doctorProfile.core_expertise === 'string') try { doctorProfile.coreExpertise = JSON.parse(doctorProfile.core_expertise); } catch {}
           if (typeof doctorProfile.memberships === 'string') try { doctorProfile.memberships = JSON.parse(doctorProfile.memberships); } catch {}
+          ['photo_url', 'hero_photo', 'about_photo', 'profile_photo', 'second_opinion_photo', 'cta_photo', 'mobile_photo', 'signature_url'].forEach((k) => {
+            if (doctorProfile[k]) doctorProfile[k] = resolveMediaPublicUrl(doctorProfile[k], env, url.origin);
+          });
         }
 
         const heroContent = siteSettings['homepage_hero'] || siteSettings['heroContent'] || {};
@@ -2068,7 +2141,13 @@ export default {
           }
           sql += ' ORDER BY created_at DESC LIMIT 200';
           const results = await env.DB.prepare(sql).bind(...params).all();
-          return json({ success: true, count: results.results?.length ?? 0, media: results.results });
+          const normalizedMedia = (results.results || []).map((m: any) => ({
+            ...m,
+            public_url: m.storage_key
+              ? buildPublicMediaUrl(m.storage_key, env, url.origin)
+              : resolveMediaPublicUrl(m.public_url, env, url.origin)
+          }));
+          return json({ success: true, count: normalizedMedia.length, media: normalizedMedia });
         }
 
         if (pathname === '/api/admin/media/upload' && request.method === 'POST') {
@@ -2104,8 +2183,7 @@ export default {
             customMetadata: { originalName: file.name, category }
           });
 
-          const publicDomain = (env.PUBLIC_MEDIA_URL || 'https://media.drbhushanparmar.com').replace(/\/$/, '');
-          const publicUrl = `${publicDomain}/${storageKey}`;
+          const publicUrl = buildPublicMediaUrl(storageKey, env, url.origin);
           const mediaId = `med-${Date.now()}-${randomStr}`;
 
           await env.DB.prepare(

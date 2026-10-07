@@ -43,6 +43,8 @@ export interface Env {
   ALLOWED_ORIGIN?: string;
   ALLOWED_ORIGINS?: string;
   TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_ENABLED?: string;
+  TURNSTILE_ALLOWED_HOSTNAMES?: string;
   RESEND_API_KEY?: string;
   NOTIFICATION_FROM_EMAIL?: string;
   EMAIL_NOTIFICATIONS_ENABLED?: string;
@@ -64,6 +66,92 @@ function isValidEmailAddress(value: string): boolean {
 
 function emailNotificationsEnabled(env: Env): boolean {
   return env.EMAIL_NOTIFICATIONS_ENABLED === 'true';
+}
+
+function turnstileEnabled(env: Env): boolean {
+  return env.TURNSTILE_ENABLED === 'true';
+}
+
+type TurnstileValidationResult = {
+  success: boolean;
+  challenge_ts?: string;
+  hostname?: string;
+  action?: string;
+  cdata?: string;
+  'error-codes'?: string[];
+};
+
+async function verifyTurnstile(
+  env: Env,
+  token: unknown,
+  remoteIp: string,
+  expectedAction: string
+): Promise<boolean> {
+  if (!turnstileEnabled(env)) {
+    return true;
+  }
+  if (!env.TURNSTILE_SECRET_KEY || !env.TURNSTILE_SECRET_KEY.trim()) {
+    return false;
+  }
+  if (typeof token !== 'string') {
+    return false;
+  }
+  const cleanToken = token.trim();
+  if (!cleanToken || cleanToken.length > 2048) {
+    return false;
+  }
+
+  const isTestSecret = env.TURNSTILE_SECRET_KEY.startsWith('1x0000000000000000000000000000000AA');
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+
+    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        secret: env.TURNSTILE_SECRET_KEY.trim(),
+        response: cleanToken,
+        remoteip: remoteIp || undefined,
+        idempotency_key: crypto.randomUUID()
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!resp.ok) {
+      return false;
+    }
+
+    const result = (await resp.json().catch(() => ({}))) as TurnstileValidationResult;
+    if (!result.success) {
+      return false;
+    }
+
+    if (result.action && result.action !== expectedAction) {
+      return false;
+    }
+
+    if (!isTestSecret && env.TURNSTILE_ALLOWED_HOSTNAMES && env.TURNSTILE_ALLOWED_HOSTNAMES.trim()) {
+      const allowedHostnames = env.TURNSTILE_ALLOWED_HOSTNAMES
+        .split(',')
+        .map(h => h.trim().toLowerCase())
+        .filter(Boolean);
+      if (allowedHostnames.length > 0) {
+        const resultHostname = (result.hostname || '').toLowerCase().trim();
+        if (!resultHostname || !allowedHostnames.includes(resultHostname)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function escapeHtml(str: string): string {
@@ -824,10 +912,26 @@ export default {
         if (isRateLimited(clientIp, 15, 600000)) return json({ error: 'Submission limit reached.' }, 429);
         const body = (await request.json().catch(() => ({}))) as any;
 
+        const honeypot = typeof body.website === 'string' ? body.website.trim() : '';
+        if (honeypot) {
+          return json({ success: true, message: 'Enquiry received', enquiryId: `enq-${Date.now()}` }, 201);
+        }
+
         const rawType = typeof body.type === 'string' ? body.type.trim() : 'general';
         const allowedTypes = ['appointment', 'contact', 'general'];
         if (!allowedTypes.includes(rawType)) {
           return json({ error: 'Invalid enquiry type' }, 400);
+        }
+
+        const expectedAction = rawType === 'appointment' ? 'appointment' : 'contact';
+        const turnstileOk = await verifyTurnstile(
+          env,
+          body.turnstileToken,
+          clientIp,
+          expectedAction
+        );
+        if (!turnstileOk) {
+          return json({ error: 'Security verification failed. Please try again.' }, 403);
         }
 
         const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -912,6 +1016,11 @@ export default {
         if (isRateLimited(clientIp, 10, 600000)) return json({ error: 'Submission limit reached.' }, 429);
         const body = (await request.json().catch(() => ({}))) as any;
 
+        const honeypot = typeof body.website === 'string' ? body.website.trim() : '';
+        if (honeypot) {
+          return json({ success: true, message: 'Second opinion request recorded', requestId: crypto.randomUUID() }, 201);
+        }
+
         let id: string;
         if (body.requestId !== undefined && body.requestId !== null) {
           const rawReqId = String(body.requestId).trim();
@@ -921,6 +1030,16 @@ export default {
           id = rawReqId;
         } else {
           id = crypto.randomUUID();
+        }
+
+        const turnstileOk = await verifyTurnstile(
+          env,
+          body.turnstileToken,
+          clientIp,
+          'second_opinion'
+        );
+        if (!turnstileOk) {
+          return json({ error: 'Security verification failed. Please try again.' }, 403);
         }
 
         const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
@@ -2115,6 +2234,15 @@ export default {
             apiKeyConfigured: Boolean(env.RESEND_API_KEY && env.RESEND_API_KEY.trim()),
             fromAddressConfigured: Boolean(env.NOTIFICATION_FROM_EMAIL && env.NOTIFICATION_FROM_EMAIL.trim()),
             adminUrlConfigured: Boolean(env.ADMIN_APP_URL && env.ADMIN_APP_URL.trim())
+          });
+        }
+
+        // TURNSTILE STATUS (PHASE 3C)
+        if (pathname === '/api/admin/turnstile-status' && request.method === 'GET') {
+          return json({
+            enabled: env.TURNSTILE_ENABLED === 'true',
+            secretConfigured: Boolean(env.TURNSTILE_SECRET_KEY && env.TURNSTILE_SECRET_KEY.trim()),
+            hostnameConfigured: Boolean(env.TURNSTILE_ALLOWED_HOSTNAMES && env.TURNSTILE_ALLOWED_HOSTNAMES.trim())
           });
         }
 

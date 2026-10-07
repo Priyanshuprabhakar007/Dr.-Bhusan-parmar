@@ -4,6 +4,7 @@ import { UploadedFileMeta } from '../types';
 import { validateMedicalDocument } from '../utils/security';
 import { apiUrl } from '../lib/api';
 import { getFieldConfig, validateFormFields } from '../utils/formBuilder';
+import { TurnstileWidget } from './common/TurnstileWidget';
 import {
   X,
   ShieldCheck,
@@ -34,6 +35,12 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
 
   const [headerHeight, setHeaderHeight] = useState(70);
   const [requestId, setRequestId] = useState<string>(() => crypto.randomUUID());
+
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
+
+  const rawSiteKey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim() || '';
+  const isTurnstileConfigured = Boolean(rawSiteKey && rawSiteKey !== 'NOT_CONFIGURED');
 
   const secondOpinionConfig = formBuilderConfig?.secondOpinionForm;
   const fields = secondOpinionConfig?.fields;
@@ -175,10 +182,15 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
       return;
     }
 
+    if (isTurnstileConfigured && !turnstileToken) {
+      setErrorMessage('Please complete the security verification.');
+      return;
+    }
+
     setIsSubmitting(true);
     let requestCreated = false;
     try {
-      // Step 2: Create the D1 parent second-opinion request FIRST
+      // Step 2: Create the D1 parent second-opinion request FIRST with Turnstile token
       requestCreated = await submitSecondOpinion({
         requestId,
         name: formData.name.trim(),
@@ -189,15 +201,21 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
         currentDiagnosis: formData.currentDiagnosis.trim(),
         previousTreatment: formData.previousTreatment.trim(),
         message: formData.message.trim(),
-        attachedFiles: []
+        attachedFiles: [],
+        turnstileToken,
+        website: formData.honeypot
       });
+
+      // Clear Turnstile token immediately after consumption
+      setTurnstileToken('');
+      setTurnstileResetSignal(prev => prev + 1);
 
       if (!requestCreated) {
         setErrorMessage('Could not submit your second opinion request. Please try again.');
         return;
       }
 
-      // Step 3: Upload selected reports using the SAME requestId (parent now exists in D1)
+      // Step 3: Upload selected reports using the SAME requestId (parent now exists in D1, NO turnstile token required for uploads)
       for (const item of selectedFiles) {
         const formDataPayload = new FormData();
         formDataPayload.append('file', item.file);
@@ -227,11 +245,15 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
       }
     } finally {
       setIsSubmitting(false);
+      setTurnstileToken('');
+      setTurnstileResetSignal(prev => prev + 1);
     }
   };
 
   const resetForm = () => {
     setRequestId(crypto.randomUUID());
+    setTurnstileToken('');
+    setTurnstileResetSignal(prev => prev + 1);
     setFormData({
       name: '',
       phone: '',
@@ -608,6 +630,27 @@ export const SecondOpinionDrawer: React.FC<SecondOpinionDrawerProps> = ({
                         </p>
                       </div>
                     </div>
+
+                    {/* Invisible Honeypot */}
+                    <input
+                      type="text"
+                      name="website"
+                      value={formData.honeypot}
+                      onChange={(e) => setFormData({ ...formData, honeypot: e.target.value })}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      aria-hidden="true"
+                      className="hidden opacity-0 absolute -z-10 pointer-events-none"
+                    />
+
+                    {/* Turnstile Security Verification */}
+                    <TurnstileWidget
+                      action="second_opinion"
+                      onToken={setTurnstileToken}
+                      onExpired={() => setTurnstileToken('')}
+                      onError={() => setTurnstileToken('')}
+                      resetSignal={turnstileResetSignal}
+                    />
                   </div>
 
                   {/* Fixed Sticky Submit Footer */}

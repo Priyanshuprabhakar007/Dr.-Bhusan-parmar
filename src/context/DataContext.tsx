@@ -206,13 +206,13 @@ interface DataContextType {
   updateFormBuilderConfig: (config: Partial<FormBuilderConfig>) => Promise<boolean>;
 
   // Submissions & Enquiries
-  submitAppointment: (data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'>) => Promise<boolean>;
+  submitAppointment: (data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'> & { turnstileToken?: string; website?: string }) => Promise<boolean>;
   updateAppointmentStatus: (id: string, status: AppointmentSubmission['status'], notes?: string) => Promise<boolean>;
   deleteAppointment: (id: string) => Promise<boolean>;
-  submitSecondOpinion: (opinion: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string }) => Promise<boolean>;
+  submitSecondOpinion: (opinion: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string; turnstileToken?: string; website?: string }) => Promise<boolean>;
   updateSecondOpinionStatus: (id: string, status: SecondOpinionSubmission['status'], notes?: string) => Promise<boolean>;
   deleteSecondOpinion: (id: string) => Promise<boolean>;
-  submitContactEnquiry: (enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'>) => Promise<boolean>;
+  submitContactEnquiry: (enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'> & { turnstileToken?: string; website?: string }) => Promise<boolean>;
   updateContactEnquiryStatus: (id: string, status: ContactEnquiryItem['status'], notes?: string) => Promise<boolean>;
   deleteContactEnquiry: (id: string) => Promise<boolean>;
 
@@ -1123,7 +1123,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Submissions
   const submitAppointment = async (
-    data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'>
+    data: Omit<AppointmentSubmission, 'id' | 'submittedAt' | 'status'> & { turnstileToken?: string; website?: string }
   ): Promise<boolean> => {
     try {
       const res = await api.post('/api/public/enquiries', {
@@ -1135,14 +1135,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         preferred_time: data.preferredSlot,
         cancer_type: data.cancerTypeOrConcern,
         consultation_type: data.consultationType,
-        message: data.notes || ''
+        message: data.notes || '',
+        turnstileToken: data.turnstileToken || '',
+        website: data.website || ''
       });
       if (!res.ok) {
         return false;
       }
       const id = res.data?.enquiryId || `app-${Date.now()}`;
+      const { turnstileToken: _t, website: _w, ...cleanData } = data;
       const newSubmission: AppointmentSubmission = {
-        ...data,
+        ...cleanData,
         id,
         submittedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         status: 'New'
@@ -1183,7 +1186,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const submitSecondOpinion = async (
-    data: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string }
+    data: Omit<SecondOpinionSubmission, 'id' | 'submittedAt' | 'status'> & { requestId?: string; turnstileToken?: string; website?: string }
   ): Promise<boolean> => {
     try {
       const res = await api.post('/api/public/second-opinion', {
@@ -1195,14 +1198,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancer_type: data.cancerType,
         stage: data.currentDiagnosis,
         current_treatment: data.previousTreatment,
-        specific_questions: data.message
+        specific_questions: data.message,
+        turnstileToken: data.turnstileToken || '',
+        website: data.website || ''
       });
       if (!res.ok) {
         return false;
       }
       const id = res.data?.requestId || data.requestId || `so-${Date.now()}`;
+      const { turnstileToken: _t, website: _w, ...cleanData } = data;
       const newSubmission: SecondOpinionSubmission = {
-        ...data,
+        ...cleanData,
         id,
         submittedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         status: 'Pending Review'
@@ -1243,7 +1249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const submitContactEnquiry = async (
-    enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'>
+    enquiry: Omit<ContactEnquiryItem, 'id' | 'submittedDate' | 'status'> & { turnstileToken?: string; website?: string }
   ): Promise<boolean> => {
     try {
       const res = await api.post('/api/public/enquiries', {
@@ -1251,14 +1257,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: enquiry.name,
         phone: enquiry.phone,
         email: enquiry.email,
-        message: enquiry.message
+        message: enquiry.message,
+        turnstileToken: enquiry.turnstileToken || '',
+        website: enquiry.website || ''
       });
       if (!res.ok) {
         return false;
       }
       const id = res.data?.enquiryId || `enq-${Date.now()}`;
+      const { turnstileToken: _t, website: _w, ...cleanData } = enquiry;
       const newEnq: ContactEnquiryItem = {
-        ...enquiry,
+        ...cleanData,
         id,
         submittedDate: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         status: 'New'

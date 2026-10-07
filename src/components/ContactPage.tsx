@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { getFieldConfig, validateFormFields } from '../utils/formBuilder';
+import { TurnstileWidget } from './common/TurnstileWidget';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle, ExternalLink, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 interface ContactPageProps {
@@ -17,9 +18,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
   const [formEmail, setFormEmail] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [honeypot, setHoneypot] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const rawSiteKey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim() || '';
+  const isTurnstileConfigured = Boolean(rawSiteKey && rawSiteKey !== 'NOT_CONFIGURED');
 
   const contactConfig = formBuilderConfig?.contactForm;
   const fields = contactConfig?.fields;
@@ -54,6 +61,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
       return;
     }
 
+    if (isTurnstileConfigured && !turnstileToken) {
+      setErrorMessage('Please complete the security verification.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const success = await submitContactEnquiry({
@@ -61,7 +73,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
         phone: formPhone.trim(),
         email: formEmail.trim(),
         message: formMessage.trim(),
-        sourcePage: 'Contact Page'
+        sourcePage: 'Contact Page',
+        turnstileToken,
+        website: honeypot
       });
 
       if (success) {
@@ -77,6 +91,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
       setErrorMessage('Could not send your message. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setTurnstileToken('');
+      setTurnstileResetSignal(prev => prev + 1);
     }
   };
 
@@ -336,6 +352,27 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackToHome, onOpenAp
                       />
                     </div>
                   )}
+
+                  {/* Invisible Honeypot */}
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="hidden opacity-0 absolute -z-10 pointer-events-none"
+                  />
+
+                  {/* Turnstile Security Widget */}
+                  <TurnstileWidget
+                    action="contact"
+                    onToken={setTurnstileToken}
+                    onExpired={() => setTurnstileToken('')}
+                    onError={() => setTurnstileToken('')}
+                    resetSignal={turnstileResetSignal}
+                  />
 
                   <button
                     type="submit"

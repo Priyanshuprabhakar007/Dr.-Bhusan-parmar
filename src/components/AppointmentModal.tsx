@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useData } from '../context/DataContext';
 import { getFieldConfig, validateFormFields } from '../utils/formBuilder';
+import { TurnstileWidget } from './common/TurnstileWidget';
 import {
   X,
   Calendar,
@@ -25,9 +26,15 @@ export const AppointmentModal: React.FC = () => {
     honeypot: ''
   });
 
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const rawSiteKey = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim() || '';
+  const isTurnstileConfigured = Boolean(rawSiteKey && rawSiteKey !== 'NOT_CONFIGURED');
 
   // Field configurations from CMS Form Builder
   const appointmentConfig = formBuilderConfig?.appointmentForm;
@@ -98,6 +105,11 @@ export const AppointmentModal: React.FC = () => {
       return;
     }
 
+    if (isTurnstileConfigured && !turnstileToken) {
+      setError('Please complete the security verification.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await submitAppointment({
@@ -108,7 +120,9 @@ export const AppointmentModal: React.FC = () => {
         preferredSlot: formData.preferredSlot.trim(),
         consultationType: formData.consultationType,
         cancerTypeOrConcern: formData.cancerTypeOrConcern.trim(),
-        notes: formData.notes.trim()
+        notes: formData.notes.trim(),
+        turnstileToken,
+        website: formData.honeypot
       });
 
       if (!res) {
@@ -121,12 +135,16 @@ export const AppointmentModal: React.FC = () => {
       setError('Could not process your request. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setTurnstileToken('');
+      setTurnstileResetSignal(prev => prev + 1);
     }
   };
 
   const handleClose = () => {
     setSuccess(false);
     setError(null);
+    setTurnstileToken('');
+    setTurnstileResetSignal(prev => prev + 1);
     closeAppointmentModal();
   };
 
@@ -368,6 +386,27 @@ export const AppointmentModal: React.FC = () => {
                   />
                 </div>
               )}
+
+              {/* Invisible Honeypot */}
+              <input
+                type="text"
+                name="website"
+                value={formData.honeypot}
+                onChange={e => setFormData({ ...formData, honeypot: e.target.value })}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="hidden opacity-0 absolute -z-10 pointer-events-none"
+              />
+
+              {/* Turnstile Security Widget */}
+              <TurnstileWidget
+                action="appointment"
+                onToken={setTurnstileToken}
+                onExpired={() => setTurnstileToken('')}
+                onError={() => setTurnstileToken('')}
+                resetSignal={turnstileResetSignal}
+              />
 
               <div className="pt-2">
                 <button

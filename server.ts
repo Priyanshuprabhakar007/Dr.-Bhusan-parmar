@@ -28,6 +28,83 @@ function isValidEmailAddress(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function turnstileEnabledDev(): boolean {
+  return process.env.TURNSTILE_ENABLED === 'true';
+}
+
+async function verifyTurnstileDev(
+  token: unknown,
+  remoteIp: string,
+  expectedAction: string
+): Promise<boolean> {
+  if (!turnstileEnabledDev()) {
+    return true;
+  }
+  const secretKey = process.env.TURNSTILE_SECRET_KEY?.trim();
+  if (!secretKey) {
+    return false;
+  }
+  if (typeof token !== 'string') {
+    return false;
+  }
+  const cleanToken = token.trim();
+  if (!cleanToken || cleanToken.length > 2048) {
+    return false;
+  }
+
+  const isTestSecret = secretKey.startsWith('1x0000000000000000000000000000000AA');
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+
+    const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        secret: secretKey,
+        response: cleanToken,
+        remoteip: remoteIp || undefined,
+        idempotency_key: crypto.randomUUID()
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!resp.ok) {
+      return false;
+    }
+
+    const result = (await resp.json().catch(() => ({}))) as any;
+    if (!result.success) {
+      return false;
+    }
+
+    if (result.action && result.action !== expectedAction) {
+      return false;
+    }
+
+    if (!isTestSecret && process.env.TURNSTILE_ALLOWED_HOSTNAMES && process.env.TURNSTILE_ALLOWED_HOSTNAMES.trim()) {
+      const allowedHostnames = process.env.TURNSTILE_ALLOWED_HOSTNAMES
+        .split(',')
+        .map(h => h.trim().toLowerCase())
+        .filter(Boolean);
+      if (allowedHostnames.length > 0) {
+        const resultHostname = (result.hostname || '').toLowerCase().trim();
+        if (!resultHostname || !allowedHostnames.includes(resultHostname)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -824,13 +901,29 @@ async function startServer() {
   });
 
   // POST /api/public/enquiries - Public enquiry submission (Appointments, Contact)
-  app.post('/api/public/enquiries', (req, res) => {
+  app.post('/api/public/enquiries', async (req, res) => {
     try {
       const body = req.body || {};
+      const honeypot = typeof body.website === 'string' ? body.website.trim() : '';
+      if (honeypot) {
+        return res.status(201).json({ success: true, message: 'Enquiry received', enquiryId: `enq-${Date.now()}` });
+      }
+
       const rawType = typeof body.type === 'string' ? body.type.trim() : 'general';
       const allowedTypes = ['appointment', 'contact', 'general'];
       if (!allowedTypes.includes(rawType)) {
         return res.status(400).json({ error: 'Invalid enquiry type' });
+      }
+
+      const expectedAction = rawType === 'appointment' ? 'appointment' : 'contact';
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+      const turnstileOk = await verifyTurnstileDev(
+        body.turnstileToken,
+        clientIp,
+        expectedAction
+      );
+      if (!turnstileOk) {
+        return res.status(403).json({ error: 'Security verification failed. Please try again.' });
       }
 
       const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -911,9 +1004,14 @@ async function startServer() {
   });
 
   // POST /api/public/second-opinion - Public second opinion submission
-  app.post('/api/public/second-opinion', (req, res) => {
+  app.post('/api/public/second-opinion', async (req, res) => {
     try {
       const body = req.body || {};
+      const honeypot = typeof body.website === 'string' ? body.website.trim() : '';
+      if (honeypot) {
+        return res.status(201).json({ success: true, message: 'Second opinion request recorded', requestId: crypto.randomUUID() });
+      }
+
       let id: string;
       if (body.requestId !== undefined && body.requestId !== null) {
         const rawReqId = String(body.requestId).trim();
@@ -923,6 +1021,16 @@ async function startServer() {
         id = rawReqId;
       } else {
         id = crypto.randomUUID();
+      }
+
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+      const turnstileOk = await verifyTurnstileDev(
+        body.turnstileToken,
+        clientIp,
+        'second_opinion'
+      );
+      if (!turnstileOk) {
+        return res.status(403).json({ error: 'Security verification failed. Please try again.' });
       }
 
       const patientName = typeof (body.patientName ?? body.patient_name ?? body.name) === 'string' ? (body.patientName ?? body.patient_name ?? body.name).trim() : '';
@@ -1823,6 +1931,15 @@ async function startServer() {
       apiKeyConfigured: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim()),
       fromAddressConfigured: Boolean(process.env.NOTIFICATION_FROM_EMAIL && process.env.NOTIFICATION_FROM_EMAIL.trim()),
       adminUrlConfigured: Boolean(process.env.ADMIN_APP_URL && process.env.ADMIN_APP_URL.trim())
+    });
+  });
+
+  // GET /api/admin/turnstile-status
+  app.get('/api/admin/turnstile-status', requireRole(['super_admin', 'content_manager', 'enquiry_manager']), (req, res) => {
+    res.json({
+      enabled: process.env.TURNSTILE_ENABLED === 'true',
+      secretConfigured: Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.TURNSTILE_SECRET_KEY.trim()),
+      hostnameConfigured: Boolean(process.env.TURNSTILE_ALLOWED_HOSTNAMES && process.env.TURNSTILE_ALLOWED_HOSTNAMES.trim())
     });
   });
 
